@@ -1,0 +1,33 @@
+{
+  "description": "Strategy 1: Text Relevance Search (BM25)",
+  "use_case": "Find videos by keyword with natural language ranking",
+  "index": "videos_index",
+  "query": {
+    "multi_match": {
+      "query": "machine learning tutorial",
+      "fields": [
+        "title^2",
+        "description",
+        "tags"
+      ],
+      "type": "best_fields"
+    }
+  },
+  "size": 10,
+  "explain": false,
+  "_source": [
+    "video_id",
+    "title",
+    "view_count",
+    "published_at"
+  ],
+  "notes": {
+    "field_boost": "title^2 means title matches score 2x higher than description",
+    "query_type": "best_fields uses highest scoring field (vs most_fields which sums)",
+    "parameters": {
+      "query": "Keyword or phrase to search for",
+      "fields": "List of fields to search with optional boost (^2)",
+      "size": "Number of results to return (default 10)"
+    }
+  }
+}
