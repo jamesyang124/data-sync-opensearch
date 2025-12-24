@@ -1,0 +1,44 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s",
+    "analysis": {
+      "analyzer": {
+        "default": {
+          "type": "standard"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "comment_id": {
+        "type": "keyword"
+      },
+      "video_id": {
+        "type": "keyword"
+      },
+      "user_id": {
+        "type": "keyword"
+      },
+      "comment_text": {
+        "type": "text",
+        "analyzer": "standard"
+      },
+      "sentiment": {
+        "type": "keyword"
+      },
+      "like_count": {
+        "type": "integer"
+      },
+      "posted_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "parent_comment_id": {
+        "type": "keyword"
+      }
+    }
+  }
+}

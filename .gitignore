@@ -1,0 +1,33 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Build artifacts
+/dist/
+/tmp/
+
+# Env
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Codex (keep AGENTS.md and prompts)
+.codex/*
+!.codex/AGENTS.md
+!.codex/prompts/
+!.codex/prompts/**

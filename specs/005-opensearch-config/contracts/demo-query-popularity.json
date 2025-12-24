@@ -1,0 +1,52 @@
+{
+  "description": "Strategy 3: Popularity-Based Sorting",
+  "use_case": "Trending content or most engaged videos/comments",
+  "index": "videos_index",
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "view_count": {
+        "order": "desc"
+      }
+    },
+    {
+      "published_at": {
+        "order": "desc"
+      }
+    }
+  ],
+  "size": 10,
+  "_source": [
+    "video_id",
+    "title",
+    "view_count",
+    "like_count",
+    "published_at"
+  ],
+  "notes": {
+    "primary_sort": "view_count descending (highest first)",
+    "tie_breaking": "If view_count is equal, secondary sort by published_at (newest first)",
+    "alternative_metrics": "Can use like_count, subscriber_count, or comment engagement",
+    "parameters": {
+      "sort_field": "Engagement metric to sort by (view_count, like_count, etc.)",
+      "order": "desc for highest first, asc for lowest first",
+      "size": "Number of results to return"
+    }
+  },
+  "alternative_sort_by_likes": {
+    "sort": [
+      {
+        "like_count": {
+          "order": "desc"
+        }
+      },
+      {
+        "view_count": {
+          "order": "desc"
+        }
+      }
+    ]
+  }
+}

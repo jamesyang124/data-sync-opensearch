@@ -1,0 +1,128 @@
+{
+  "description": "Strategy 4: Hybrid Multi-Factor Ranking",
+  "use_case": "Combine relevance, recency, and popularity for balanced search results",
+  "index": "videos_index",
+  "query": {
+    "function_score": {
+      "query": {
+        "multi_match": {
+          "query": "machine learning tutorial",
+          "fields": [
+            "title^2",
+            "description",
+            "tags"
+          ]
+        }
+      },
+      "functions": [
+        {
+          "gauss": {
+            "published_at": {
+              "origin": "now",
+              "scale": "30d",
+              "offset": "7d",
+              "decay": 0.5
+            }
+          },
+          "weight": 1.0
+        },
+        {
+          "field_value_factor": {
+            "field": "view_count",
+            "factor": 0.0001,
+            "modifier": "log1p",
+            "missing": 0
+          },
+          "weight": 1.0
+        }
+      ],
+      "score_mode": "sum",
+      "boost_mode": "sum",
+      "max_boost": 10
+    }
+  },
+  "size": 10,
+  "_source": [
+    "video_id",
+    "title",
+    "view_count",
+    "published_at"
+  ],
+  "notes": {
+    "base_query": "multi_match provides text relevance score (BM25)",
+    "function_1_recency": {
+      "type": "gauss decay on published_at",
+      "origin": "now = reference point (current time)",
+      "scale": "30d = 50% score decay at 30 days old",
+      "offset": "7d = no decay for videos in last week",
+      "decay": "0.5 = score multiplier at scale distance",
+      "weight": "1.0 = contribution to final score"
+    },
+    "function_2_popularity": {
+      "type": "field_value_factor on view_count",
+      "factor": "0.0001 = scaling factor to normalize large view counts",
+      "modifier": "log1p = log(1 + view_count) to prevent viral videos dominating",
+      "missing": "0 = default value if view_count is null",
+      "weight": "1.0 = contribution to final score"
+    },
+    "score_mode": "sum = add function scores together",
+    "boost_mode": "sum = add function scores to query score (vs multiply)",
+    "max_boost": "10 = cap maximum boost from functions",
+    "tuning": {
+      "increase_recency": "Increase recency weight to favor newer videos",
+      "increase_popularity": "Increase popularity weight to favor trending content",
+      "adjust_scale": "Change scale from 30d to 7d for faster decay",
+      "change_boost_mode": "Use multiply instead of sum for different behavior"
+    }
+  },
+  "example_variations": {
+    "favor_recency": {
+      "functions": [
+        {
+          "gauss": {
+            "published_at": {
+              "origin": "now",
+              "scale": "30d",
+              "offset": "7d",
+              "decay": 0.5
+            }
+          },
+          "weight": 2.0
+        },
+        {
+          "field_value_factor": {
+            "field": "view_count",
+            "factor": 0.0001,
+            "modifier": "log1p"
+          },
+          "weight": 0.5
+        }
+      ],
+      "note": "Recency weight 2.0 vs popularity weight 0.5 favors newer content"
+    },
+    "favor_popularity": {
+      "functions": [
+        {
+          "gauss": {
+            "published_at": {
+              "origin": "now",
+              "scale": "30d",
+              "offset": "7d",
+              "decay": 0.5
+            }
+          },
+          "weight": 0.5
+        },
+        {
+          "field_value_factor": {
+            "field": "view_count",
+            "factor": 0.0001,
+            "modifier": "log1p"
+          },
+          "weight": 2.0
+        }
+      ],
+      "note": "Popularity weight 2.0 vs recency weight 0.5 favors trending videos"
+    }
+  }
+}

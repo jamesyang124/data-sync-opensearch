@@ -1,0 +1,24 @@
+.git
+.gitignore
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+.specify/
+specs/
+
+bin/
+dist/
+tmp/
+
+.env
+.env.*
+
+*.log
+
+# Codex (keep AGENTS.md and prompts)
+.codex/*
+!.codex/AGENTS.md
+!.codex/prompts/
+!.codex/prompts/**

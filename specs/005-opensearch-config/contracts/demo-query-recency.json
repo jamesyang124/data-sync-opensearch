@@ -1,0 +1,48 @@
+{
+  "description": "Strategy 2: Recency-Based Sorting",
+  "use_case": "Show newest videos or latest comments first",
+  "index": "videos_index",
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "published_at": {
+        "order": "desc"
+      }
+    }
+  ],
+  "size": 10,
+  "_source": [
+    "video_id",
+    "title",
+    "published_at",
+    "view_count"
+  ],
+  "notes": {
+    "query_type": "match_all returns all documents (no filtering)",
+    "sort_behavior": "Results ordered by published_at descending (newest first)",
+    "optional_filter": "Can add date range filter for 'last 7 days' or 'last month'",
+    "parameters": {
+      "order": "desc for newest first, asc for oldest first",
+      "size": "Number of results to return"
+    }
+  },
+  "optional_date_range_filter": {
+    "query": {
+      "range": {
+        "published_at": {
+          "gte": "now-7d/d",
+          "lt": "now/d"
+        }
+      }
+    },
+    "sort": [
+      {
+        "published_at": {
+          "order": "desc"
+        }
+      }
+    ]
+  }
+}
