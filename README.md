@@ -259,10 +259,6 @@ make inspect-data
 
 See [postgres/quickstart.md](postgres/quickstart.md) for detailed setup guide.
 
-### Kafka Monitoring (Feature 003)
-
-After `make start-kafka`, open Kafka UI at `http://localhost:8081` to inspect brokers, topics, and consumer groups.
-
 ### Debezium CDC Configuration (Feature 002)
 
 Configure Change Data Capture to stream PostgreSQL changes to Kafka:
@@ -309,7 +305,7 @@ bash debezium/tests/test-offset-recovery.sh
 - Initial snapshot: 895K records (videos + users + comments)
 - ARM64 compatible: Works on Apple Silicon
 - Offset management: No data loss on restart
-- Event transformation: Clean JSON format with ExtractNewRecordState
+- Event format: Debezium envelope with full CDC metadata (before/after, op, source)
 
 **Available commands**:
 - `make start-cdc` - Start Kafka, Connect, UI, and register connector
@@ -318,7 +314,7 @@ bash debezium/tests/test-offset-recovery.sh
 - `make status-cdc` - Check connector health
 - `make register-connector` - Manually register connector
 
-See [debezium/README.md](debezium/README.md) for detailed CDC documentation and [specs/002-debezium-setup/quickstart.md](specs/002-debezium-setup/quickstart.md) for setup guide.
+See [debezium/README.md](debezium/README.md) for detailed CDC documentation and [specs/002-cdc-setup/quickstart.md](specs/002-cdc-setup/quickstart.md) for setup guide.
 
 ## Configuration Management
 

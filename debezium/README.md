@@ -123,37 +123,48 @@ Located in `connectors/postgres-connector.json`:
 }
 ```
 
-**Transforms:**
-```json
-{
-  "transforms": "unwrap",
-  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
-  "transforms.unwrap.add.fields": "op,source.ts_ms,source.table"
-}
-```
+**Event Format:**
 
-The `ExtractNewRecordState` transform extracts the actual row data from the Debezium envelope, making events easier to consume.
+The connector uses the default Debezium envelope format, which preserves full CDC metadata including `before`, `after`, operation type, and source information.
 
 ### Event Format
 
-After transformation, CDC events look like:
+CDC events use the Debezium envelope structure:
 
 ```json
 {
-  "comment_id": "test-123",
-  "video_id": "mcY4M9gjtsI",
-  "channel_id": "UC...",
-  "comment_text": "Great video!",
-  "likes": 42,
-  "replies": 3,
-  "published_at": "2025-12-25T08:59:00Z",
-  "sentiment_label": "positive",
-  "country_code": "US",
-  "__op": "c",                    // Operation: c=create, u=update, d=delete
-  "__source_ts_ms": 1703498340000,
-  "__source_table": "comments"
+  "payload": {
+    "before": null,
+    "after": {
+      "comment_id": "test-123",
+      "video_id": "mcY4M9gjtsI",
+      "channel_id": "UC...",
+      "comment_text": "Great video!",
+      "likes": 42,
+      "replies": 3,
+      "published_at": "2025-12-25T08:59:00Z",
+      "sentiment_label": "positive",
+      "country_code": "US",
+      "updated_at": "2025-12-25T08:59:00Z"
+    },
+    "op": "c",
+    "source": {
+      "db": "app",
+      "schema": "public",
+      "table": "comments",
+      "ts_ms": 1703498340000
+    },
+    "ts_ms": 1703498340000
+  }
 }
 ```
+
+**Key fields:**
+- `before`: Previous row state (null for inserts)
+- `after`: New row state (null for deletes)
+- `op`: Operation type (`c`=create, `u`=update, `d`=delete, `r`=snapshot read)
+- `source`: PostgreSQL metadata (database, table, LSN timestamp)
+- `ts_ms`: Event timestamp from Debezium
 
 ## Management Scripts
 
@@ -330,7 +341,7 @@ bash debezium/tests/test-offset-recovery.sh
 
 - [Debezium PostgreSQL Connector Docs](https://debezium.io/documentation/reference/stable/connectors/postgresql.html)
 - [Kafka Connect REST API](https://docs.confluent.io/platform/current/connect/references/restapi.html)
-- [Project Quickstart](../specs/002-debezium-setup/quickstart.md)
+- [Project Quickstart](../specs/002-cdc-setup/quickstart.md)
 
 ## Configuration Reference
 
@@ -356,4 +367,4 @@ bash debezium/tests/test-offset-recovery.sh
 3. **Scale Testing:** Test with higher volume workloads
 4. **Production Config:** Review security, retention, and replication settings
 
-For production deployment considerations, see [Production Deployment Guide](../specs/002-debezium-setup/plan.md#next-steps-for-production).
+For production deployment considerations, see [Production Deployment Guide](../specs/002-cdc-setup/plan.md#next-steps-for-production).

@@ -1,6 +1,6 @@
 # Implementation Plan: Debezium CDC Configuration
 
-**Branch**: `002-debezium-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
+**Branch**: `002-cdc-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 

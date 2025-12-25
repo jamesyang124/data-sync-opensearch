@@ -1,6 +1,6 @@
 # Feature Specification: Debezium CDC Configuration
 
-**Feature Branch**: `002-debezium-setup`
+**Feature Branch**: `002-cdc-setup`
 **Created**: 2025-12-25
 **Status**: Draft
 **Input**: User description: "the debezium configuration suggestion"
@@ -83,7 +83,7 @@ As a developer, I need to start, stop, restart, and reconfigure the Debezium con
 - **FR-007**: System MUST handle initial snapshot on first connector start, capturing existing table data before streaming changes
 - **FR-008**: System MUST persist connector offsets to prevent duplicate or missing events across restarts
 - **FR-009**: System MUST provide Makefile targets for connector lifecycle management (start-cdc, stop-cdc, restart-cdc, status-cdc)
-- **FR-010**: System MUST configure appropriate transformations (e.g., unwrap envelope, route by table) for clean event structure
+- **FR-010**: System MUST preserve Debezium's default CDC envelope format (no unwrap) to retain before/after, source, and timestamp metadata
 - **FR-011**: System MUST document connector configuration parameters with explanations and recommended values
 - **FR-012**: System MUST handle connector failures gracefully with automatic restart and recovery from last committed offset
 

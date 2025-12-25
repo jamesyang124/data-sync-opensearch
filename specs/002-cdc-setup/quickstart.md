@@ -146,29 +146,42 @@ docker compose exec kafka kafka-console-consumer \
 
 ### Step 5: Understand Event Format
 
-CDC events use the ExtractNewRecordState transform for clean JSON:
+CDC events use the default Debezium envelope format, which preserves full metadata:
 
 ```json
 {
-  "comment_id": "quickstart-test-1703498340",
-  "video_id": "mcY4M9gjtsI",
-  "channel_id": "UCxxxxxxxxx",
-  "comment_text": "Testing CDC - this should appear in Kafka!",
-  "likes": 10,
-  "replies": 0,
-  "published_at": "2025-12-25T09:00:00Z",
-  "sentiment_label": "positive",
-  "country_code": "US",
-  "__op": "c",
-  "__source_ts_ms": 1703498340000,
-  "__source_table": "comments"
+  "payload": {
+    "before": null,
+    "after": {
+      "comment_id": "quickstart-test-1703498340",
+      "video_id": "mcY4M9gjtsI",
+      "channel_id": "UCxxxxxxxxx",
+      "comment_text": "Testing CDC - this should appear in Kafka!",
+      "likes": 10,
+      "replies": 0,
+      "published_at": "2025-12-25T09:00:00Z",
+      "sentiment_label": "positive",
+      "country_code": "US",
+      "updated_at": "2025-12-25T09:00:00Z"
+    },
+    "op": "c",
+    "source": {
+      "db": "app",
+      "schema": "public",
+      "table": "comments",
+      "ts_ms": 1703498340000
+    },
+    "ts_ms": 1703498340000
+  }
 }
 ```
 
 **Key fields:**
-- `__op`: Operation type (`c` = create, `u` = update, `d` = delete)
-- `__source_ts_ms`: Timestamp from PostgreSQL WAL
-- `__source_table`: Source table name
+- `before`: Previous row state (null for inserts, populated for updates/deletes)
+- `after`: New row state (null for deletes, populated for inserts/updates)
+- `op`: Operation type (`c`=create, `u`=update, `d`=delete, `r`=snapshot read)
+- `source`: PostgreSQL metadata (database, schema, table, timestamp)
+- `ts_ms`: Event timestamp from Debezium
 
 ## Common Operations
 

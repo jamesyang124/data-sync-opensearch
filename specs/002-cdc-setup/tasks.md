@@ -1,6 +1,6 @@
 # Tasks: Debezium CDC Configuration
 
-**Input**: `/specs/002-debezium-setup/spec.md`
+**Input**: `/specs/002-cdc-setup/spec.md`
 **Tests**: Integration tests included per constitution
 
 ## Phase 1: Setup
@@ -30,7 +30,7 @@
 
 ### Implementation
 
-- [X] T011 [US1] Create postgres-connector.json in debezium/connectors/ (pgoutput plugin, 3 tables, ExtractNewRecordState transform)
+- [X] T011 [US1] Create postgres-connector.json in debezium/connectors/ (pgoutput plugin, 3 tables, envelope format)
 - [X] T012 [US1] Create register-connector.sh in debezium/scripts/ (POST with retry logic, status check)
 - [X] T013 [US1] Update start-cdc target to auto-register connector
 - [X] T014 [US1] Test CDC: inserted test row, verified Debezium captured event, snapshot completed (895K records)
