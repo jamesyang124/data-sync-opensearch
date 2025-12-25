@@ -36,6 +36,14 @@
         "type": "date",
         "format": "strict_date_optional_time||epoch_millis"
       },
+      "created_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "updated_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
       "parent_comment_id": {
         "type": "keyword"
       }

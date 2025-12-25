@@ -7,337 +7,212 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Deploy OpenSearch with Pre-configured Indices (Priority: P1)
+### User Story 1 - Consume CDC Events and Sync to OpenSearch (Priority: P1)
 
-As a developer, I need to deploy an OpenSearch cluster with pre-configured indices matching the CDC data structure (videos, users, comments), so the consumer application has a ready target for syncing data from Kafka.
+As a developer, I need a consumer application that reads CDC events from Kafka topics and synchronizes them to OpenSearch indices, so the video platform data becomes searchable and discoverable in near real-time.
 
-**Why this priority**: This is the foundational search infrastructure. Without OpenSearch properly deployed with appropriate index mappings, the consumer application (feature 004) cannot complete the data sync pipeline.
+**Why this priority**: This is the core sync functionality completing the end-to-end pipeline (PostgreSQL → Debezium → Kafka → Consumer → OpenSearch). Without this consumer, CDC events remain in Kafka with no downstream action.
 
-**Independent Test**: Can be fully tested by deploying OpenSearch, verifying indices are created with correct mappings, and inserting sample documents to confirm indexing works. Delivers immediate value by providing the search backend infrastructure.
+**Independent Test**: Can be fully tested by producing CDC events to Kafka topics, running the consumer application, and verifying corresponding documents appear in OpenSearch indices with correct data. Delivers immediate value by making PostgreSQL data searchable.
 
 **Acceptance Scenarios**:
 
-1. **Given** no existing OpenSearch cluster, **When** developer runs deploy command, **Then** OpenSearch container starts successfully with health check passing
-2. **Given** OpenSearch is running, **When** developer checks available indices, **Then** system shows three indices (videos_index, users_index, comments_index) with appropriate mappings for each data type
-3. **Given** indices are created, **When** developer inserts test document into any index, **Then** document is indexed successfully and becomes searchable within 1 second
+1. **Given** Kafka topics contain CDC INSERT events for videos/users/comments, **When** consumer application starts, **Then** consumer reads events and creates corresponding documents in OpenSearch indices
+2. **Given** Kafka contains UPDATE event for existing record, **When** consumer processes the event, **Then** consumer updates the corresponding OpenSearch document with new field values
+3. **Given** Kafka contains DELETE event, **When** consumer processes the event, **Then** consumer removes the corresponding document from OpenSearch index
 
 ---
 
-### User Story 2 - Execute Demo Queries with Multiple Ranking Strategies (Priority: P2)
+### User Story 2 - Handle Failures and Ensure Reliable Delivery (Priority: P2)
 
-As a developer, I need pre-built demo queries demonstrating different ranking and sorting strategies (relevance scoring, date-based, popularity-based, hybrid combinations), so I can showcase OpenSearch search capabilities and validate the sync pipeline produces searchable results.
+As a developer, I need the consumer to handle failures gracefully (OpenSearch unavailable, malformed events, network issues) with automatic retry and dead letter queue support, so the sync pipeline remains resilient and doesn't lose data.
 
-**Why this priority**: Essential for demonstrating value and validating search functionality, but requires data to be synced first (depends on P1 and consumer application).
+**Why this priority**: Essential for operational reliability. The consumer must handle real-world failure scenarios, but basic sync functionality must work first (depends on P1).
 
-**Independent Test**: Can be tested by loading sample data into indices and executing each demo query, verifying results are ranked according to the specified strategy and return relevant documents.
+**Independent Test**: Can be tested by simulating failures (stop OpenSearch, send invalid events, trigger network errors) and verifying consumer behavior matches configured retry policy and dead letter handling.
 
 **Acceptance Scenarios**:
 
-1. **Given** video index contains sample data, **When** developer executes relevance-based query for "tutorial", **Then** results are ranked by text match score with most relevant videos first
-2. **Given** video index contains documents with view counts and timestamps, **When** developer executes popularity-based query, **Then** results are sorted by view count (descending) with tie-breaking by recency
-3. **Given** user wants to combine multiple ranking factors, **When** developer executes hybrid query (relevance + recency + popularity), **Then** results reflect weighted combination of all three scoring factors
-4. **Given** comment data is indexed, **When** developer executes date-range query with sorting, **Then** results are filtered by time window and sorted by specified field (timestamp, score, etc.)
+1. **Given** OpenSearch is temporarily unavailable, **When** consumer attempts to sync event, **Then** consumer retries with exponential backoff until OpenSearch recovers or max retries reached
+2. **Given** consumer receives malformed CDC event, **When** event processing fails validation, **Then** consumer logs error details and moves event to dead letter queue without blocking other messages
+3. **Given** consumer crashes mid-processing, **When** consumer restarts, **Then** consumer resumes from last committed Kafka offset without re-processing or skipping events
+4. **Given** consumer receives an older update with a lower `updated_at` than the stored document, **When** processing the event, **Then** consumer ignores the update to prevent stale writes
 
 ---
 
-### User Story 3 - Monitor Index Health and Performance (Priority: P3)
+### User Story 3 - Monitor Consumer Health and Performance (Priority: P3)
 
-As a developer, I need to monitor OpenSearch cluster health, index statistics, and query performance metrics, so I can detect indexing issues or performance bottlenecks before they impact search availability.
+As a developer, I need to monitor consumer application health, processing lag, error rates, and throughput metrics via HTTP endpoints and structured logs, so I can detect and diagnose issues before they impact search availability.
 
-**Why this priority**: Important for operational visibility but not required for basic search functionality. Developers can check logs manually as fallback.
+**Why this priority**: Important for observability but not required for basic sync operation. Developers can check logs manually as fallback.
 
-**Independent Test**: Can be tested by accessing monitoring endpoints or dashboards and verifying they display cluster status, index metrics, and query statistics.
+**Independent Test**: Can be tested by accessing health check endpoint, querying metrics endpoint, and verifying they report consumer status, lag, and statistics correctly.
 
 **Acceptance Scenarios**:
 
-1. **Given** OpenSearch is running, **When** developer calls cluster health API, **Then** endpoint returns status (green/yellow/red), node count, and shard allocation information
-2. **Given** documents are indexed, **When** developer queries index statistics, **Then** system reports document count, storage size, and indexing rate per index
-3. **Given** queries are executed, **When** developer checks query performance metrics, **Then** system shows query latency distribution (p50, p95, p99) and cache hit rates
+1. **Given** consumer is running and processing events, **When** developer calls health check endpoint, **Then** endpoint returns HTTP 200 with status showing consumer health, Kafka connectivity, and OpenSearch connectivity
+2. **Given** consumer is processing CDC events, **When** developer queries metrics endpoint, **Then** endpoint returns processing rate, error count, lag per topic/partition, and OpenSearch indexing latency
+3. **Given** consumer encounters errors, **When** developer checks structured logs, **Then** logs include correlation IDs, event details, error messages, and context for troubleshooting
 
 ---
 
 ### Edge Cases
 
-- What happens when OpenSearch runs out of disk space? Cluster should block new indexing operations and return clear error message; existing data remains searchable in read-only mode.
-- How does system handle malformed documents that don't match index mapping? OpenSearch should reject documents with strict mapping violations or auto-adapt dynamic fields depending on configuration; errors logged with document details.
-- What happens when queries are too complex or timeout? OpenSearch should cancel long-running queries after configured timeout and return partial results or error message with query context.
-- How does system handle index deletion while consumer is actively writing? Consumer should detect missing index error and either auto-recreate index or move to dead letter queue depending on configuration.
-- What happens when multiple clients query simultaneously with limited resources? OpenSearch should apply query throttling, prioritize by queue, and apply circuit breakers to prevent cluster instability.
+- What happens when consumer processes events faster than OpenSearch can index? Consumer should apply backpressure by slowing down Kafka consumption to match OpenSearch throughput; if buffer fills, temporarily pause consumption.
+- How does consumer handle duplicate CDC events (at-least-once delivery)? Consumer should use idempotent operations (upsert by document ID) so duplicates don't cause data corruption or unexpected behavior.
+- What happens when OpenSearch index doesn't exist? Consumer should auto-create index with appropriate mapping on first document insertion, or fail with clear error if auto-creation is disabled.
+- How does consumer handle schema evolution (new fields in CDC events)? Consumer should dynamically map new fields to OpenSearch documents; explicit mapping updates may be needed for type changes.
+- What happens during consumer deployment/restart? Consumer should gracefully shut down by flushing in-flight batches, committing offsets, and allowing brief drain period before termination.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST deploy OpenSearch cluster via Docker Compose with configurable heap size and volume persistence
-- **FR-002**: System MUST pre-create three indices (videos_index, users_index, comments_index) with mappings matching CDC event structure from PostgreSQL tables
-- **FR-003**: System MUST configure index mappings with appropriate field types (text with analyzers for searchable content, keyword for exact match, numeric for counts, date for timestamps)
-- **FR-004**: System MUST provide sample documents representing realistic data for each index to enable demo query execution
-- **FR-005**: System MUST include collection of demo queries demonstrating at least 4 ranking strategies: text relevance scoring, date-based sorting, popularity-based sorting (by view count or similar metric), and hybrid multi-factor scoring
-- **FR-006**: System MUST configure text analyzers for search fields (standard analyzer for general text, language-specific analyzers if content language is known)
-- **FR-007**: System MUST expose OpenSearch on configurable port with environment variable overrides
-- **FR-008**: System MUST provide Makefile targets for OpenSearch lifecycle management (start-opensearch, stop-opensearch, restart-opensearch, status-opensearch, create-indices, load-demo-data, run-demo-queries)
-- **FR-009**: System MUST configure cluster settings for development use (single-node mode, discovery disabled, memory limits appropriate for local development)
-- **FR-010**: System MUST include monitoring interface (OpenSearch Dashboards or equivalent) for visual index management and query testing
-- **FR-011**: System MUST document index mapping design decisions with rationale for field type choices and analyzer configurations
-- **FR-012**: System MUST provide query examples in multiple formats (REST API curl commands, OpenSearch Query DSL JSON, and optionally client library code snippets)
+- **FR-001**: Application MUST consume CDC events from Kafka topics (dbserver.public.videos, dbserver.public.users, dbserver.public.comments) using consumer group for offset management
+- **FR-002**: Application MUST transform CDC events (INSERT/UPDATE/DELETE operations) into corresponding OpenSearch operations (index/update/delete documents)
+- **FR-002a**: Application MUST parse Debezium CDC envelope (`payload.before`, `payload.after`, `payload.op`, `payload.ts_ms`)
+- **FR-003**: Application MUST use idempotent operations (upsert by document ID) to handle duplicate events from at-least-once delivery
+- **FR-003a**: Application MUST compare `updated_at` from CDC events to ignore stale updates (optimistic lock)
+- **FR-004**: Application MUST provide configurable mapping between Kafka topics and OpenSearch indices
+- **FR-005**: Application MUST handle OpenSearch connection failures with exponential backoff retry (configurable max retries and backoff strategy)
+- **FR-006**: Application MUST move malformed or repeatedly failing events to dead letter queue after exceeding retry limit
+- **FR-007**: Application MUST commit Kafka offsets only after successful OpenSearch indexing to prevent data loss
+- **FR-008**: Application MUST provide HTTP health check endpoint reporting consumer status, Kafka connectivity, and OpenSearch connectivity
+- **FR-009**: Application MUST expose metrics endpoint providing processing rate, error count, lag per partition, and indexing latency
+- **FR-010**: Application MUST emit structured JSON logs with correlation IDs for event tracing
+- **FR-011**: Application MUST support graceful shutdown with configurable drain timeout for in-flight event processing
+- **FR-012**: Application MUST load configuration from environment variables and optional configuration file
+- **FR-013**: Application MUST deploy via Docker container with health checks and restart policies
 
 ### Key Entities
 
-- **OpenSearch Cluster**: Distributed search and analytics engine providing full-text search, aggregations, and document indexing, configured in single-node mode for development
-- **Index**: Named collection of documents with defined mapping (schema), settings (shards, replicas, analyzers), and aliases for query abstraction
-- **Index Mapping**: Schema definition specifying field types, analyzers, index options, and constraints for each document field in an index
-- **Document**: JSON object stored in an index, representing a synced entity (video, user, comment) with searchable fields and metadata
-- **Query Strategy**: Approach for ranking and retrieving documents including text relevance (BM25 scoring), field-based sorting (date, numeric), function score (custom ranking formulas), and hybrid combinations
-- **Text Analyzer**: Tokenization and normalization pipeline applied to text fields during indexing and query time, including standard analyzer, language-specific analyzers, and custom analyzers
-- **Demo Query**: Pre-built search request demonstrating specific ranking strategy with sample parameters, expected result characteristics, and use case explanation
-- **OpenSearch Dashboards**: Web interface for cluster management, index inspection, query testing, and visualization of search results and metrics
+- **Consumer Application**: Event-driven service consuming Kafka CDC events and synchronizing to OpenSearch, using concurrent workers for parallel processing
+- **CDC Event**: Debezium envelope message containing `payload.before`, `payload.after`, `payload.op`, and metadata (`payload.source`, `payload.ts_ms`)
+- **Document Transformation**: Logic converting CDC event payload to OpenSearch document format, extracting document ID, mapping field types, and handling nested structures
+- **OpenSearch Index**: Search index storing documents with mappings, settings, and shards corresponding to PostgreSQL tables (videos_index, users_index, comments_index)
+- **Consumer Group**: Kafka consumer group managing partition assignment, offset tracking, and rebalancing across multiple consumer instances
+- **Dead Letter Queue**: Kafka topic or storage for events that failed processing after max retries, preserving original event and error context for manual review
+- **Health Check**: HTTP endpoint exposing application health status including component connectivity (Kafka, OpenSearch), lag metrics, and error rates
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Developer can deploy complete OpenSearch infrastructure (cluster + indices + monitoring) in under 3 minutes using single Makefile command
-- **SC-002**: All three indices are created successfully with 100% of required field mappings (video metadata, user attributes, comment content)
-- **SC-003**: Demo queries execute successfully with response times under 500ms for datasets up to 50K documents
-- **SC-004**: Text relevance queries return results with decreasing relevance scores demonstrating proper BM25 scoring
-- **SC-005**: Hybrid ranking queries combine multiple factors (relevance + recency + popularity) with configurable weights producing different result orders
-- **SC-006**: Cluster health endpoint reports green status within 10 seconds of startup
-- **SC-007**: OpenSearch Dashboards loads and displays cluster status, index list, and query interface in under 5 seconds
-- **SC-008**: Demo data loading completes for 10K sample documents across all indices in under 30 seconds
-- **SC-009**: Documentation includes at least 4 working query examples with explanations of ranking strategy and expected results
-- **SC-010**: Index mappings support full-text search, exact match filtering, range queries, and aggregations without runtime errors
+- **SC-001**: Developer can deploy complete sync pipeline and see PostgreSQL changes reflected in OpenSearch within 10 seconds (end-to-end latency from database write to searchable document)
+- **SC-002**: Consumer processes 100 CDC events per second sustained throughput without accumulating lag
+- **SC-003**: Consumer handles duplicate events correctly with 0% data corruption (same event processed multiple times results in identical OpenSearch state)
+- **SC-004**: Consumer recovers automatically from transient OpenSearch failures (<2 minutes downtime) without data loss or manual intervention
+- **SC-005**: Health check endpoint responds within 1 second with accurate status for all components
+- **SC-006**: Consumer achieves 99.9% successful event processing rate (0.1% to dead letter queue for truly malformed events)
+- **SC-007**: Consumer graceful shutdown completes within 30 seconds, processing all in-flight events and committing offsets
+- **SC-008**: Structured logs provide sufficient context to trace and debug 100% of processing errors
 
 ## Assumptions
 
-- **A-001**: Single-node OpenSearch cluster is sufficient for development (no high availability or distributed search required)
-- **A-002**: Default OpenSearch 2.x is compatible with the data volumes and query patterns for this demo use case
-- **A-003**: Index mappings can be statically defined based on PostgreSQL schema from feature 001 (videos, users, comments tables)
-- **A-004**: Sample demo data can be manually crafted or extracted from subset of Hugging Face dataset for demonstration purposes
-- **A-005**: Document IDs in OpenSearch will match primary key values from PostgreSQL for idempotent upserts by consumer
-- **A-006**: Standard BM25 relevance scoring is acceptable (no custom similarity algorithms or learning-to-rank models required)
-- **A-007**: Docker host has sufficient memory for OpenSearch heap (minimum 2GB recommended for development)
-- **A-008**: Demo queries focus on common search patterns (keyword search, filtering, sorting) rather than advanced features (geospatial, machine learning)
-- **A-009**: OpenSearch Dashboards accessed via localhost without authentication is acceptable for development
-- **A-010**: Index refresh interval can use default settings (1 second) for near real-time search without optimization
-- **A-011**: English language content is assumed for text analysis (standard analyzer appropriate for YouTube comment data)
-- **A-012**: Demo queries will be provided as static examples in documentation rather than interactive query builder UI
+- **A-001**: OpenSearch cluster is deployed and accessible from consumer application (separate from this feature scope)
+- **A-002**: Kafka broker from feature 003 is running with configured topics and at-least-once delivery semantics
+- **A-003**: CDC events from Debezium (feature 002) use the default envelope format (no unwrap SMT)
+- **A-004**: Consumer runs as single instance for development (horizontal scaling with multiple instances deferred to production)
+- **A-005**: OpenSearch indices allow dynamic mapping for schema evolution (new fields added automatically)
+- **A-006**: Document IDs can be derived from CDC event primary key fields (video_id, user_id/channel_id, comment_id)
+- **A-007**: Consumer has sufficient memory to buffer events during backpressure scenarios without OOM errors
+- **A-008**: Dead letter queue events are manually reviewed and replayed (no automatic retry from DLQ)
+- **A-009**: Consumer application logs go to stdout/stderr for container log aggregation
+- **A-010**: HTTP endpoints (health check, metrics) accessible on localhost without authentication for development
 
-## Index Design Recommendations
+## CDC Event Contract (Debezium Envelope)
 
-Based on the PostgreSQL schema from feature 001 and common search patterns:
+Consumer expects Debezium's default envelope and uses `updated_at` for optimistic locking.
 
-### Videos Index Mapping
-
-**Index Name**: `videos_index`
-
-**Field Mappings**:
-- **video_id**: `keyword` (exact match, document ID)
-- **title**: `text` with standard analyzer (full-text search primary field)
-- **description**: `text` with standard analyzer (searchable content)
-- **channel_id**: `keyword` (exact match for filtering by channel)
-- **view_count**: `long` (numeric for sorting and range queries)
-- **like_count**: `long` (numeric for popularity scoring)
-- **published_at**: `date` (timestamp for recency sorting and date range filters)
-- **duration_seconds**: `integer` (numeric for filtering by video length)
-- **category**: `keyword` (exact match for faceted search)
-- **tags**: `text` array with keyword subfield (searchable tags + exact match)
-
-**Index Settings**:
-- **Shards**: 1 (development)
-- **Replicas**: 0 (no replication needed for single-node)
-- **Refresh Interval**: 1s (near real-time)
-
-### Users Index Mapping
-
-**Index Name**: `users_index`
-
-**Field Mappings**:
-- **user_id**: `keyword` (exact match, document ID)
-- **username**: `text` with keyword subfield (searchable + exact match)
-- **channel_name**: `text` with keyword subfield (searchable + exact match)
-- **subscriber_count**: `long` (numeric for popularity)
-- **created_at**: `date` (timestamp for account age)
-- **verified**: `boolean` (filter for verified channels)
-- **description**: `text` (searchable bio/about)
-
-**Index Settings**:
-- **Shards**: 1
-- **Replicas**: 0
-- **Refresh Interval**: 1s
-
-### Comments Index Mapping
-
-**Index Name**: `comments_index`
-
-**Field Mappings**:
-- **comment_id**: `keyword` (exact match, document ID)
-- **video_id**: `keyword` (join to videos for filtering)
-- **user_id**: `keyword` (join to users for filtering)
-- **comment_text**: `text` with standard analyzer (full-text search primary field)
-- **sentiment**: `keyword` (categorical: positive, negative, neutral)
-- **like_count**: `integer` (numeric for sorting by engagement)
-- **posted_at**: `date` (timestamp for recency)
-- **parent_comment_id**: `keyword` (nullable, for threaded replies)
-
-**Index Settings**:
-- **Shards**: 1
-- **Replicas**: 0
-- **Refresh Interval**: 1s
-
-## Query Strategy Recommendations
-
-Based on common search use cases and the user request for "several ranking sorting query strategies":
-
-### Strategy 1: Text Relevance Search (BM25)
-
-**Use Case**: Find videos or comments by keyword with natural language ranking
-
-**Query Pattern**: Match query with BM25 scoring on title/description/comment_text fields
-
-**Example**: Search for "machine learning tutorial" ranked by text relevance
-
-**Parameters**:
-- **Query Type**: `match` or `multi_match`
-- **Fields**: title^2 (boosted), description, tags (for videos)
-- **Scoring**: Default BM25 algorithm
-
-### Strategy 2: Recency-Based Sorting
-
-**Use Case**: Show newest videos or latest comments first
-
-**Query Pattern**: Match-all or filtered query with sort by date field descending
-
-**Example**: Latest uploaded videos or recent comments in time window
-
-**Parameters**:
-- **Sort Field**: published_at (videos), posted_at (comments)
-- **Sort Order**: Descending (newest first)
-- **Optional Filter**: Date range (last 7 days, last month)
-
-### Strategy 3: Popularity-Based Sorting
-
-**Use Case**: Trending content or most engaged videos/comments
-
-**Query Pattern**: Query with sort by engagement metrics (views, likes, subscribers)
-
-**Example**: Most viewed videos or top-liked comments
-
-**Parameters**:
-- **Sort Field**: view_count (videos), like_count (comments/videos), subscriber_count (users)
-- **Sort Order**: Descending (highest first)
-- **Tie-breaking**: Secondary sort by recency for equal values
-
-### Strategy 4: Hybrid Multi-Factor Ranking
-
-**Use Case**: Combine relevance, recency, and popularity for balanced search results
-
-**Query Pattern**: Function score query with multiple scoring functions weighted and combined
-
-**Example**: Search query scored by text relevance (50%) + recency boost (25%) + popularity boost (25%)
-
-**Parameters**:
-- **Base Query**: Match query for relevance score
-- **Function 1 (Recency)**: `gauss` decay function on published_at/posted_at field
-- **Function 2 (Popularity)**: `field_value_factor` on view_count or like_count
-- **Score Mode**: `sum` or `multiply` to combine function scores
-- **Boost Mode**: `sum` to add function scores to query score
-- **Weights**: Configurable per function (e.g., relevance=2.0, recency=1.0, popularity=1.0)
-
-**Example Configuration**:
 ```json
 {
-  "query": {
-    "function_score": {
-      "query": { "match": { "title": "tutorial" } },
-      "functions": [
-        {
-          "gauss": {
-            "published_at": {
-              "scale": "30d",
-              "offset": "7d",
-              "decay": 0.5
-            }
-          },
-          "weight": 1.0
-        },
-        {
-          "field_value_factor": {
-            "field": "view_count",
-            "factor": 0.0001,
-            "modifier": "log1p"
-          },
-          "weight": 1.0
-        }
-      ],
-      "score_mode": "sum",
-      "boost_mode": "sum"
-    }
-  },
-  "sort": ["_score"]
+  "payload": {
+    "op": "u",
+    "before": { "comment_id": "123", "updated_at": "2024-06-20T08:10:00Z" },
+    "after": { "comment_id": "123", "comment_text": "new", "updated_at": "2024-06-20T08:12:00Z" },
+    "ts_ms": 1710000000000
+  }
 }
 ```
 
-### Strategy 5 (Optional): Filtered Aggregations
+**Rules**:
+- Use primary key as Kafka message key and OpenSearch document ID.
+- Ignore updates where `after.updated_at` is older than the stored document.
+- Deletes rely on `before` payload (document ID derived from primary key).
 
-**Use Case**: Faceted search with category/sentiment filtering and aggregation statistics
+## Event Processing Recommendations
 
-**Query Pattern**: Bool query with filters + aggregations on categorical fields
+Based on event-driven architecture best practices and Golang ecosystem:
 
-**Example**: Videos in "Education" category with view count distribution
+### Event-Driven Framework Options
 
-**Parameters**:
-- **Filter**: Category, verified status, sentiment
-- **Aggregations**: Terms (category breakdown), stats (view count statistics), date histogram (posts over time)
+**Option 1: Sarama + Goroutines (Recommended)**
+- **Library**: shopify/sarama (mature Kafka client for Go)
+- **Pattern**: Consumer group with worker pool of goroutines
+- **Advantages**: Native Go concurrency, full Kafka control, no framework overhead
+- **Complexity**: Manual worker management, offset tracking, graceful shutdown
 
-## Configuration Recommendations
+**Option 2: Watermill**
+- **Library**: ThreeDotsLabs/watermill (event-driven Go library)
+- **Pattern**: Pub/sub abstraction with middleware support
+- **Advantages**: Clean abstraction, middleware (retry, metrics, recovery), multiple backends
+- **Complexity**: Additional abstraction layer, learning curve
 
-### Cluster Settings
+**Option 3: Go-Micro**
+- **Library**: asim/go-micro (microservices framework)
+- **Pattern**: Full microservices framework with messaging
+- **Advantages**: Comprehensive tooling, service discovery, observability built-in
+- **Complexity**: Heavy framework, possibly overkill for single consumer
 
-- **Cluster Name**: `opensearch-dev`
-- **Node Name**: `opensearch-node-01`
-- **Discovery Type**: `single-node` (development mode)
-- **HTTP Port**: 9200 (configurable)
-- **Transport Port**: 9300
-- **JVM Heap**: `-Xms2g -Xmx2g` (2GB for development, adjustable based on host memory)
+**Recommendation**: Sarama + Goroutines for direct control and performance, or Watermill if middleware patterns are valuable.
 
-### Security Settings (Development)
+### HTTP Framework for Endpoints (Note: Gin mentioned but likely not needed)
 
-- **Security Plugin**: Disabled or minimal authentication for development
-- **HTTPS**: Optional (can use HTTP for local development)
-- **CORS**: Enabled for OpenSearch Dashboards access
+**Important**: User mentioned "Gin or any event driven frameworks". However:
+- **Gin**: HTTP web framework (for REST APIs) - likely NOT needed for consumer unless building admin API
+- **Event-driven**: Consumer primarily needs Kafka client + background processing
 
-### Performance Settings
+**If HTTP endpoints required** (health check, metrics):
+- **net/http** standard library: Sufficient for simple health/metrics endpoints
+- **Gin/Echo/Chi**: Only if building more complex admin API alongside consumer
 
-- **Index Buffer Size**: Default (10% of heap)
-- **Query Cache**: Enabled
-- **Request Cache**: Enabled
-- **Max Result Window**: 10000 (default, increase if deep pagination needed)
+**Recommendation**: Start with net/http for minimal overhead; add Gin only if admin API requirements expand.
 
-### Monitoring Interface
+### OpenSearch Client
 
-- **Recommended Tool**: OpenSearch Dashboards (official UI)
-- **Port**: 5601 (configurable)
-- **Features**: Dev Tools (query console), Index Management, Cluster Overview, Discover (data exploration)
+- **Library**: opensearch-project/opensearch-go (official Go client)
+- **Operations**: Bulk API for batching, index/update/delete operations
+- **Error Handling**: Retry transient errors (503, 429), DLQ for permanent failures (400, 404 on non-existent index)
+
+### Concurrency Pattern
+
+- **Consumer Goroutines**: 1-4 goroutines consuming from Kafka partitions (matches partition count)
+- **Worker Pool**: Fixed pool processing events in parallel (e.g., 10-20 workers)
+- **Batch Processing**: Group events into batches for OpenSearch bulk API (e.g., 100 events or 5 seconds)
+- **Backpressure**: Block Kafka consumption if worker queue is full
+
+### Configuration Approach
+
+- **Environment Variables**: `KAFKA_BROKERS`, `OPENSEARCH_URL`, `CONSUMER_GROUP`, `BATCH_SIZE`, etc.
+- **Config File** (optional): YAML or JSON for complex mapping rules
+- **Defaults**: Sensible defaults for development (localhost:9092, localhost:9200)
 
 ## Out of Scope
 
-- Multi-node OpenSearch cluster for high availability
-- Cross-cluster search or replication
-- Advanced features: machine learning, anomaly detection, k-NN search
-- Custom similarity algorithms or learning-to-rank models
-- Security hardening (TLS, authentication, authorization, audit logging)
-- Index lifecycle management (ILM) for automated retention and rollover
-- Performance benchmarking and query optimization beyond basic recommendations
-- Custom OpenSearch plugins or extensions
-- Snapshot and restore configuration for backups
-- Ingest pipelines for complex data transformation (handled by consumer application)
-- Geospatial search capabilities
-- Production-grade monitoring dashboards (Grafana, Prometheus exporters)
+- OpenSearch cluster deployment and configuration (separate infrastructure concern)
+- Multiple consumer instances with partition rebalancing (single instance for development)
+- Schema migration tooling for OpenSearch index mappings
+- Complex event transformation logic (ETL operations beyond basic field mapping)
+- Consumer admin UI for managing DLQ or replaying events
+- Distributed tracing integration (OpenTelemetry/Jaeger)
+- Performance benchmarking and load testing
+- Production-grade monitoring dashboards (Grafana)
+- Security (TLS for Kafka/OpenSearch, authentication, encryption at rest)
 
 ## References
 
-- OpenSearch Index Mapping Documentation
-- OpenSearch Query DSL Reference
-- BM25 Relevance Scoring Algorithm
-- Function Score Query Documentation
-- Docker Deployment Best Practices for OpenSearch
+- Sarama Kafka Client Documentation
+- Watermill Event-Driven Library
+- OpenSearch Go Client Documentation
+- Kafka Consumer Group Protocol
+- Graceful Shutdown Patterns in Go
