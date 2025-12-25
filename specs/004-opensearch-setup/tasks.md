@@ -1,6 +1,6 @@
-# Tasks: Golang CDC Consumer Application
+# Tasks: OpenSearch Configuration with Demo Indices
 
-**Input**: `/specs/004-golang-consumer/spec.md`
+**Input**: `/specs/004-opensearch-setup/spec.md`
 **Tests**: Unit and integration tests included
 
 ## Phase 1: Setup

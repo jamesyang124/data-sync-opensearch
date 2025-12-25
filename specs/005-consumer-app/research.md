@@ -1,7 +1,7 @@
-# Research: OpenSearch Configuration with Demo Indices
+# Research: Golang CDC Consumer Application
 
-**Feature**: 005-opensearch-setup | **Date**: 2025-12-25
-**Purpose**: Technical research and decision documentation for OpenSearch deployment
+**Feature**: 005-consumer-app | **Date**: 2025-12-25
+**Purpose**: Technical research and decision documentation for Golang consumer application
 
 ## Overview
 

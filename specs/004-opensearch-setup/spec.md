@@ -1,9 +1,9 @@
-# Feature Specification: Golang CDC Consumer Application
+# Feature Specification: OpenSearch Configuration with Demo Indices
 
-**Feature Branch**: `004-golang-consumer`
+**Feature Branch**: `004-opensearch-setup`
 **Created**: 2025-12-25
 **Status**: Draft
-**Input**: User description: "consumer app would based on golang gin or any event driven frameworks"
+**Input**: User description: "open search configuration, also prepare index for demo purpose, which would combine several ranking sorting query strategy for it"
 
 ## User Scenarios & Testing *(mandatory)*
 

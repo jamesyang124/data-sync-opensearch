@@ -1,6 +1,6 @@
-# Implementation Plan: Golang CDC Consumer Application
+# Implementation Plan: OpenSearch Configuration with Demo Indices
 
-**Branch**: `004-golang-consumer` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
+**Branch**: `004-opensearch-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 

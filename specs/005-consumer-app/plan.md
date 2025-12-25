@@ -1,7 +1,7 @@
-# Implementation Plan: OpenSearch Configuration with Demo Indices
+# Implementation Plan: Golang CDC Consumer Application
 
-**Branch**: `005-opensearch-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/005-opensearch-setup/spec.md`
+**Branch**: `005-consumer-app` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/005-consumer-app/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
@@ -147,7 +147,7 @@ All five core principles satisfied. Feature focuses on infrastructure deployment
 ### Documentation (this feature)
 
 ```text
-specs/005-opensearch-setup/
+specs/005-consumer-app/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)

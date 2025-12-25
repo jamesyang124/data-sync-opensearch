@@ -1,6 +1,6 @@
-# Tasks: OpenSearch Configuration with Demo Indices
+# Tasks: Golang CDC Consumer Application
 
-**Input**: Design documents from `/specs/005-opensearch-setup/`
+**Input**: Design documents from `/specs/005-consumer-app/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
 **Tests**: Integration tests are included per constitution Principle III (NON-NEGOTIABLE)
@@ -19,7 +19,7 @@ This is an infrastructure configuration project using:
 - Docker Compose services at repository root
 - OpenSearch configuration in `opensearch/` directory
 - Integration tests in `opensearch/tests/`
-- Documentation in `specs/005-opensearch-setup/`
+- Documentation in `specs/005-consumer-app/`
 
 ---
 

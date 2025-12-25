@@ -1,7 +1,7 @@
-# Data Model: OpenSearch Indices
+# Data Model: Golang CDC Consumer Application
 
-**Feature**: 005-opensearch-setup | **Date**: 2025-12-25
-**Purpose**: Document OpenSearch index schemas and their relationships
+**Feature**: 005-consumer-app | **Date**: 2025-12-25
+**Purpose**: Document data structures and transformations in the consumer application
 
 ## Overview
 

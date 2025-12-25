@@ -1,7 +1,7 @@
-# Quickstart Guide: OpenSearch Configuration
+# Quickstart Guide: Golang CDC Consumer Application
 
-**Feature**: 005-opensearch-setup | **Date**: 2025-12-25
-**Purpose**: Step-by-step guide to deploy OpenSearch, create indices, and run demo queries
+**Feature**: 005-consumer-app | **Date**: 2025-12-25
+**Purpose**: Step-by-step guide to deploy and run the Golang CDC consumer application
 
 ## Prerequisites
 
@@ -242,7 +242,7 @@ Top result combines relevance + recency + popularity
 # Or use curl with contract JSON
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-opensearch-setup/contracts/demo-query-relevance.json
+  -d @specs/005-consumer-app/contracts/demo-query-relevance.json
 ```
 
 #### Query 2: Recency-Based Sorting
@@ -253,7 +253,7 @@ curl -X POST http://localhost:9200/videos_index/_search \
 # Or use curl
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-opensearch-setup/contracts/demo-query-recency.json
+  -d @specs/005-consumer-app/contracts/demo-query-recency.json
 ```
 
 #### Query 3: Popularity-Based Sorting
@@ -264,7 +264,7 @@ curl -X POST http://localhost:9200/videos_index/_search \
 # Or use curl
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-opensearch-setup/contracts/demo-query-popularity.json
+  -d @specs/005-consumer-app/contracts/demo-query-popularity.json
 ```
 
 #### Query 4: Hybrid Multi-Factor Ranking
@@ -275,7 +275,7 @@ curl -X POST http://localhost:9200/videos_index/_search \
 # Or use curl
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-opensearch-setup/contracts/demo-query-hybrid.json
+  -d @specs/005-consumer-app/contracts/demo-query-hybrid.json
 ```
 
 ### 4.3 Understanding Query Results
@@ -575,7 +575,7 @@ curl -X POST "http://localhost:9200/videos_index/_search?explain=true" \
    - Test end-to-end pipeline: PostgreSQL → Debezium → Kafka → Consumer → OpenSearch
 
 2. **Customize queries**:
-   - Modify demo query contracts in `specs/005-opensearch-setup/contracts/`
+   - Modify demo query contracts in `specs/005-consumer-app/contracts/`
    - Adjust function_score weights in hybrid ranking query
    - Add new queries for your use cases
 

@@ -1,4 +1,4 @@
-# Specification Quality Checklist: OpenSearch Configuration with Demo Indices
+# Specification Quality Checklist: Golang CDC Consumer Application
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2025-12-25
