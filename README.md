@@ -222,6 +222,39 @@ All feature work is tracked in `/specs/[###-feature-name]/` directory.
 - [ ] Integration test coverage validated
 - [ ] Constitution principles compliance verified
 
+## Quick Start
+
+### PostgreSQL Datasource Setup (Feature 001)
+
+Get started with the PostgreSQL database and sample data:
+
+```bash
+# Start PostgreSQL with sample data (builds custom image first time)
+make start
+
+# Verify setup
+make health
+
+# View schema and sample data
+make inspect-schema
+make inspect-data
+```
+
+**What gets loaded**:
+- 30K YouTube comments from Hugging Face dataset
+- Normalized into 3 tables: videos, users, comments
+- CDC-ready with WAL enabled for Debezium
+
+**Available commands**:
+- `make start` - Start PostgreSQL and load sample data
+- `make stop` - Stop PostgreSQL
+- `make reset` - Reset database to clean state
+- `make health` - Check database status
+- `make inspect-schema` - View table structures
+- `make inspect-data` - View sample records
+
+See [postgres/quickstart.md](postgres/quickstart.md) for detailed setup guide.
+
 ## Configuration Management
 
 All service configuration via environment variables. Secrets managed through Docker secrets or external secret management (never committed to repository).

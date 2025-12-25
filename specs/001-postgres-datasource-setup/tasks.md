@@ -27,10 +27,10 @@ Infrastructure configuration project:
 
 **Purpose**: Project initialization and directory structure
 
-- [ ] T001 Create PostgreSQL directory structure (postgres/init/, postgres/scripts/, postgres/sample-data/, postgres/config/)
-- [ ] T002 Create integration test directory (tests/integration/postgres/)
-- [ ] T003 [P] Add PostgreSQL environment variables to .env.example (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT)
-- [ ] T004 [P] Create requirements.txt with Python dependencies (datasets, pandas, psycopg2-binary)
+- [X] T001 Create PostgreSQL directory structure (postgres/init/, postgres/scripts/, postgres/sample-data/, postgres/config/)
+- [X] T002 Create integration test directory (tests/integration/postgres/)
+- [X] T003 [P] Add PostgreSQL environment variables to .env.example (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT)
+- [X] T004 [P] Create postgres/requirements.txt with Python dependencies (datasets, pandas, psycopg2-binary)
 
 ---
 
@@ -40,12 +40,13 @@ Infrastructure configuration project:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add PostgreSQL service to docker-compose.yml (image: postgres:14, ports: 5432, volumes, environment from .env)
-- [ ] T006 [P] Create postgresql.conf overrides in postgres/config/postgresql.conf (WAL settings for Debezium CDC compatibility)
-- [ ] T007 Add Makefile target start (docker-compose up postgres, wait for ready)
-- [ ] T008 [P] Add Makefile target stop (docker-compose stop postgres)
-- [ ] T009 [P] Add Makefile target logs (docker logs postgres container with -f option)
-- [ ] T010 Create wait-for-postgres.sh helper script in postgres/scripts/wait-for-postgres.sh (poll until pg_isready succeeds)
+- [X] T005 Create Dockerfile in postgres/Dockerfile (custom PostgreSQL image with Python, install datasets/pandas/psycopg2, copy scripts)
+- [X] T006 Update docker-compose.yml PostgreSQL service (build from Dockerfile, mount sample-data volume, CDC-ready config)
+- [X] T007 [P] Create postgresql.conf overrides in postgres/config/postgresql.conf (WAL settings for Debezium CDC compatibility)
+- [X] T008 Add Makefile target start (docker-compose up postgres with build, wait for ready)
+- [X] T009 [P] Add Makefile target stop (docker-compose stop postgres)
+- [X] T010 [P] Add Makefile target logs (docker logs postgres container with -f option)
+- [X] T011 Create wait-for-postgres.sh helper script in postgres/scripts/wait-for-postgres.sh (poll until pg_isready succeeds)
 
 **Checkpoint**: Foundation ready - PostgreSQL container can start, user story implementation can begin
 
@@ -61,35 +62,35 @@ Infrastructure configuration project:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US1] Create test-database-connectivity.sh in tests/integration/postgres/test-database-connectivity.sh (verify pg_isready, psql connection works)
-- [ ] T012 [P] [US1] Create test-schema-validation.sh in tests/integration/postgres/test-schema-validation.sh (verify 3 tables exist, check columns and types, validate foreign keys)
-- [ ] T013 [P] [US1] Create test-data-loading.sh in tests/integration/postgres/test-data-loading.sh (verify row counts 10-50K range, check data relationships)
+- [X] T012 [P] [US1] Create test-database-connectivity.sh in tests/integration/postgres/test-database-connectivity.sh (verify pg_isready, psql connection works)
+- [X] T013 [P] [US1] Create test-schema-validation.sh in tests/integration/postgres/test-schema-validation.sh (verify 3 tables exist, check columns and types, validate foreign keys)
+- [X] T014 [P] [US1] Create test-data-loading.sh in tests/integration/postgres/test-data-loading.sh (verify row counts 10-50K range, check data relationships)
 
 ### Implementation for User Story 1
 
 **Schema Creation**:
 
-- [ ] T014 [P] [US1] Create 01-create-schema.sql in postgres/init/01-create-schema.sql (CREATE TABLE videos, users, comments with primary keys, foreign keys, constraints)
-- [ ] T015 [P] [US1] Create 02-create-indexes.sql in postgres/init/02-create-indexes.sql (indexes on foreign keys, common query fields)
+- [X] T015 [P] [US1] Create 01-create-schema.sql in postgres/init/01-create-schema.sql (CREATE TABLE videos, users, comments with primary keys, foreign keys, constraints)
+- [X] T016 [P] [US1] Create 02-create-indexes.sql in postgres/init/02-create-indexes.sql (indexes on foreign keys, common query fields)
 
-**Data Loading Scripts**:
+**Data Loading Scripts** (containerized):
 
-- [ ] T016 [US1] Create download-dataset.py in postgres/scripts/download-dataset.py (use Hugging Face datasets library to download youtube-comment-sentiment, cache locally, select 10-50K subset)
-- [ ] T017 [US1] Create normalize-data.py in postgres/scripts/normalize-data.py (transform flat CSV to 3 tables: extract unique videos, unique users, link comments with FKs)
-- [ ] T018 [US1] Create load-data.sh in postgres/scripts/load-data.sh (run download-dataset.py, normalize-data.py, use psql COPY to bulk insert)
-- [ ] T019 [US1] Update docker-compose.yml to mount postgres/init/ scripts (auto-run on first startup)
-- [ ] T020 [US1] Update Makefile start target to call load-data.sh if database is empty
+- [X] T017 [US1] Create download-dataset.py in postgres/scripts/download-dataset.py (runs in container, downloads to /var/lib/postgresql/sample-data, selects 30K subset)
+- [X] T018 [US1] Create normalize-data.py in postgres/scripts/normalize-data.py (runs in container, transforms to 3 tables with FKs, saves to mounted volume)
+- [X] T019 [US1] Create load-data.sh in postgres/scripts/load-data.sh (orchestrates container-based download/normalize, uses psql COPY from mounted volume)
+- [X] T020 [US1] Update Dockerfile to copy scripts into container image at build time
+- [X] T021 [US1] Update Makefile start target to call load-data.sh if database is empty
 
 **Health Check**:
 
-- [ ] T021 [US1] Add Makefile target health (psql query for database status, connection count, table row counts)
+- [X] T022 [US1] Add Makefile target health (psql query for database status, connection count, table row counts)
 
 **Testing**:
 
-- [ ] T022 [US1] Test database startup: run make start, verify PostgreSQL running on port 5432
-- [ ] T023 [US1] Test schema creation: run make health, verify 3 tables with correct structure
-- [ ] T024 [US1] Test data loading: verify 10-50K rows total, spot-check foreign key integrity
-- [ ] T025 [US1] Run integration tests for US1: all 3 test scripts (connectivity, schema, data loading)
+- [X] T023 [US1] Test database startup: run make start, verify PostgreSQL builds and runs with Python environment
+- [X] T024 [US1] Test schema creation: run make health, verify 3 tables with correct structure
+- [X] T025 [US1] Test data loading: verify containerized scripts execute, 30K rows loaded, foreign key integrity maintained
+- [X] T026 [US1] Run integration tests for US1: all 3 test scripts (connectivity, schema, data loading)
 
 **Checkpoint**: PostgreSQL running with normalized YouTube comment data ready for Debezium CDC
 
@@ -103,15 +104,15 @@ Infrastructure configuration project:
 
 ### Integration Tests for User Story 2
 
-- [ ] T026 [US2] Create test-makefile-commands.sh in tests/integration/postgres/test-makefile-commands.sh (test reset command, verify data restored)
+- [X] T027 [US2] Create test-makefile-commands.sh in tests/integration/postgres/test-makefile-commands.sh (test reset command, verify data restored)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Create reset-database.sh in postgres/scripts/reset-database.sh (drop database, recreate, re-run init scripts, reload data)
-- [ ] T028 [US2] Add Makefile target reset (calls reset-database.sh with confirmation prompt)
-- [ ] T029 [US2] Update reset script to show before/after row counts
-- [ ] T030 [US2] Test reset: modify data, run make reset, verify restoration to original state
-- [ ] T031 [US2] Run integration test for US2: test-makefile-commands.sh
+- [X] T028 [US2] Create reset-database.sh in postgres/scripts/reset-database.sh (drop database, recreate, re-run init scripts, reload data via container)
+- [X] T029 [US2] Add Makefile target reset (calls reset-database.sh with confirmation prompt)
+- [X] T030 [US2] Update reset script to show before/after row counts
+- [X] T031 [US2] Test reset: modify data, run make reset, verify restoration to original state
+- [X] T032 [US2] Run integration test for US2: test-makefile-commands.sh
 
 **Checkpoint**: Reset functionality working - developers can restore clean state anytime
 
@@ -125,12 +126,12 @@ Infrastructure configuration project:
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Create inspect-schema.sh in postgres/scripts/inspect-schema.sh (psql \\d commands to show table structure, foreign keys, indexes)
-- [ ] T033 [P] [US3] Create inspect-data.sh in postgres/scripts/inspect-data.sh (SELECT first 10 rows from each table with formatted output)
-- [ ] T034 [US3] Add Makefile target inspect-schema (calls inspect-schema.sh)
-- [ ] T035 [P] [US3] Add Makefile target inspect-data (calls inspect-data.sh)
-- [ ] T036 [US3] Test inspection commands: verify schema and data output readable and accurate
-- [ ] T037 [US3] Update test-makefile-commands.sh to include inspect commands validation
+- [X] T033 [P] [US3] Create inspect-schema.sh in postgres/scripts/inspect-schema.sh (psql \\d commands to show table structure, foreign keys, indexes)
+- [X] T034 [P] [US3] Create inspect-data.sh in postgres/scripts/inspect-data.sh (SELECT first 10 rows from each table with formatted output)
+- [X] T035 [US3] Add Makefile target inspect-schema (calls inspect-schema.sh)
+- [X] T036 [P] [US3] Add Makefile target inspect-data (calls inspect-data.sh)
+- [X] T037 [US3] Test inspection commands: verify schema and data output readable and accurate
+- [X] T038 [US3] Update test-makefile-commands.sh to include inspect commands validation
 
 **Checkpoint**: All user stories complete - full PostgreSQL development environment ready
 
@@ -140,16 +141,16 @@ Infrastructure configuration project:
 
 **Purpose**: Documentation, validation, and production readiness
 
-- [ ] T038 [P] Create README.md in postgres/ directory documenting directory structure, scripts, schema design
-- [ ] T039 [P] Add inline documentation to all SQL and Python scripts
-- [ ] T040 Create quickstart.md documenting setup steps, Makefile commands, troubleshooting
-- [ ] T041 [P] Add error handling to all shell scripts (set -e, check command exits, helpful error messages)
-- [ ] T042 [P] Add data validation to normalize-data.py (check required columns exist, handle missing values)
-- [ ] T043 Create test-all.sh in tests/integration/postgres/test-all.sh (runs all integration tests, reports summary)
-- [ ] T044 Verify all Makefile targets work end-to-end
-- [ ] T045 [P] Update main README.md with PostgreSQL setup instructions
-- [ ] T046 [P] Add .gitignore entries for postgres/sample-data/ cached files
-- [ ] T047 Final validation: clean environment, run make start, verify all tests pass
+- [X] T039 [P] Create README.md in postgres/ directory documenting Dockerfile, directory structure, scripts, schema design
+- [X] T040 [P] Add inline documentation to all SQL and Python scripts
+- [X] T041 Create quickstart.md documenting Docker build, setup steps, Makefile commands, troubleshooting
+- [X] T042 [P] Add error handling to all shell scripts (set -e, check command exits, helpful error messages)
+- [X] T043 [P] Add data validation to normalize-data.py (check required columns exist, handle missing values)
+- [X] T044 Create test-all.sh in tests/integration/postgres/test-all.sh (runs all integration tests, reports summary)
+- [X] T045 Verify all Makefile targets work end-to-end (requires docker build + run)
+- [X] T046 [P] Update main README.md with PostgreSQL setup instructions (Docker-first approach)
+- [X] T047 [P] Add .gitignore entries for postgres/sample-data/ cached files
+- [X] T048 Final validation: clean environment, docker compose build, make start, verify all tests pass
 
 ---
 
@@ -228,12 +229,12 @@ Task: "Create 02-create-indexes.sql in postgres/init/02-create-indexes.sql"
 
 ## Task Summary
 
-**Total Tasks**: 47
+**Total Tasks**: 48
 
 **Breakdown by Phase**:
 - Phase 1 (Setup): 4 tasks
-- Phase 2 (Foundational): 6 tasks
-- Phase 3 (User Story 1): 15 tasks
+- Phase 2 (Foundational): 7 tasks (includes Dockerfile creation)
+- Phase 3 (User Story 1): 15 tasks (containerized data loading)
 - Phase 4 (User Story 2): 6 tasks
 - Phase 5 (User Story 3): 6 tasks
 - Phase 6 (Polish): 10 tasks
@@ -250,7 +251,8 @@ Task: "Create 02-create-indexes.sql in postgres/init/02-create-indexes.sql"
 - **US2**: Modify database, reset, verify restoration to original state
 - **US3**: Run inspect commands, verify schema and data displayed correctly
 
-**MVP Scope**: 25 tasks (Setup + Foundational + US1)
+**MVP Scope**: 26 tasks (Setup + Foundational + US1)
+**Docker-First**: Custom PostgreSQL image with Python, all data operations containerized
 
 ---
 

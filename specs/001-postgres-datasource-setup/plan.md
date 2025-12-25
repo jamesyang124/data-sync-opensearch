@@ -116,18 +116,20 @@ specs/001-postgres-datasource-setup/
 
 ```text
 # Infrastructure configuration structure
-docker-compose.yml           # Add PostgreSQL service
+docker-compose.yml           # PostgreSQL service with custom build
 
 postgres/
+├── Dockerfile                    # Multi-stage build (python-builder + postgres final)
+├── requirements.txt              # Python dependencies (datasets, pandas, psycopg2)
 ├── init/
 │   ├── 01-create-schema.sql      # Create tables with foreign keys
 │   └── 02-create-indexes.sql     # Create indexes for performance
 ├── scripts/
-│   ├── download-dataset.py       # Download Hugging Face dataset
-│   ├── normalize-data.py         # Transform to 3-table structure
+│   ├── download-dataset.py       # Download Hugging Face dataset (runs in container)
+│   ├── normalize-data.py         # Transform to 3-table structure (runs in container)
 │   └── load-data.sh              # Orchestrate download + normalize + load
 ├── sample-data/
-│   └── .gitkeep                  # Cache directory for dataset files
+│   └── .gitkeep                  # Cache directory for dataset files (mounted volume)
 └── config/
     └── postgresql.conf           # PostgreSQL configuration overrides
 
@@ -140,10 +142,9 @@ tests/integration/
 
 Makefile                    # Add PostgreSQL targets
 .env.example                # Add PostgreSQL credentials
-requirements.txt            # Python dependencies for data scripts
 ```
 
-**Structure Decision**: Infrastructure configuration with Docker Compose service for PostgreSQL. Data loading uses Python scripts for Hugging Face dataset access and normalization. SQL init scripts create schema on first database startup. Makefile provides developer-friendly commands. This structure enables easy dataset updates and schema evolution.
+**Structure Decision**: Multi-stage Docker build with PostgreSQL and Python runtime. Stage 1 compiles Python dependencies (datasets, pandas, psycopg2). Stage 2 creates final PostgreSQL image with runtime-only Python (no build tools). Dataset downloads at runtime (first container start) and caches in mounted volume. Data loading scripts run inside container for true Docker-first deployment. SQL init scripts create schema on first database startup. Makefile provides developer-friendly commands. This multi-stage approach reduces final image size, avoids build memory issues, and eliminates host Python dependency requirements.
 
 ## Complexity Tracking
 
