@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-cdc stop-cdc restart-cdc status-cdc register-connector
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-cdc stop-cdc restart-cdc status-cdc register-connector test-kafka-performance test-kafka-delivery kafka-reports test-kafka
 
 # Default targets
 up:
@@ -101,3 +101,28 @@ status-cdc:
 
 register-connector:
 	@bash debezium/scripts/register-connector.sh
+
+# Kafka validation targets (Feature 003)
+test-kafka-performance:
+	@echo "Running Kafka performance benchmarks..."
+	@echo "========================================"
+	@bash kafka/tests/test-all-performance.sh
+
+test-kafka-delivery:
+	@echo "Running Kafka delivery guarantee tests..."
+	@echo "=========================================="
+	@bash kafka/tests/test-all-delivery.sh
+
+kafka-reports:
+	@echo "Generating Kafka test reports..."
+	@echo "================================="
+	@bash kafka/tests/generate-reports.sh
+
+test-kafka:
+	@echo "Running all Kafka validation tests..."
+	@echo "======================================"
+	@$(MAKE) test-kafka-performance
+	@echo ""
+	@$(MAKE) test-kafka-delivery
+	@echo ""
+	@$(MAKE) kafka-reports

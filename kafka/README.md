@@ -24,12 +24,30 @@ The Kafka broker provides the messaging backbone for CDC events, accepting chang
 
 ```
 kafka/
-├── tests/              # Integration test scripts
-│   ├── test-broker-health.sh
-│   ├── test-cdc-capture.sh
-│   └── test-topic-creation.sh
-├── quickstart.md       # Quick start guide
-└── README.md          # This file
+├── tests/                          # Integration and validation tests
+│   ├── performance/                # Performance benchmark scripts
+│   │   ├── run-throughput-test.sh
+│   │   ├── run-burst-test.sh
+│   │   ├── run-sustained-load-test.sh
+│   │   ├── run-snapshot-simulation.sh
+│   │   ├── run-startup-test.sh
+│   │   ├── collect-metrics.sh
+│   │   └── generate-cdc-payload.sh
+│   ├── delivery/                   # Delivery guarantee tests
+│   │   ├── test-broker-restart.sh
+│   │   ├── test-consumer-restart.sh
+│   │   ├── test-network-partition.sh
+│   │   ├── test-debezium-offset-recovery.sh
+│   │   └── test-multiple-consumers.sh
+│   ├── results/                    # Test outputs (gitignored)
+│   ├── test-all-performance.sh     # Run all performance tests
+│   ├── test-all-delivery.sh        # Run all delivery tests
+│   ├── generate-reports.sh         # Generate markdown reports
+│   ├── test-broker-health.sh       # Basic health check
+│   ├── test-cdc-capture.sh         # CDC event verification
+│   └── test-topic-creation.sh      # Topic creation test
+├── quickstart.md                   # Quick start guide
+└── README.md                       # This file
 ```
 
 ## Quick Start
@@ -169,20 +187,77 @@ bash kafka/tests/test-topic-creation.sh
 
 ## Performance Validation
 
-Feature 003 (Kafka Validation) provides comprehensive performance and delivery guarantee testing:
+Feature 003 (Kafka Validation) provides comprehensive performance and delivery guarantee testing to validate that Kafka meets the operational requirements for CDC workloads.
+
+### Running Tests
 
 ```bash
-# Performance benchmarks (Feature 003 - to be implemented)
+# Run performance benchmarks (throughput, burst, sustained load, snapshot, startup)
 make test-kafka-performance
 
-# Delivery guarantee tests (Feature 003 - to be implemented)
+# Run delivery guarantee tests (broker restart, consumer restart, network partition, etc.)
 make test-kafka-delivery
 
-# Generate reports (Feature 003 - to be implemented)
+# Run all tests together
+make test-kafka
+
+# Generate performance and delivery reports
 make kafka-reports
 ```
 
-See [specs/003-kafka-validation/](../specs/003-kafka-validation/) for details.
+### Test Suites
+
+**Performance Benchmarks** (5 tests):
+1. **Throughput Test**: Validates ≥1000 msg/sec with <100ms p95 latency
+2. **Burst Test**: Tests backpressure handling at 5000 msg/sec
+3. **Sustained Load**: Validates stability over 5 minutes at 500 msg/sec
+4. **Snapshot Simulation**: Replays 895K CDC events (initial snapshot simulation)
+5. **Startup Test**: Measures broker cold start and warm restart time (<10s)
+
+**Delivery Guarantee Tests** (5 tests):
+1. **Broker Restart**: Verifies 0% message loss when broker restarts mid-stream
+2. **Consumer Restart**: Validates offset recovery and no message gaps
+3. **Network Partition**: Tests message delivery after 10s Kafka container pause
+4. **Debezium Offset Recovery**: Validates CDC resumes from offset after connector restart
+5. **Multiple Consumers**: Verifies independent consumer groups both receive all messages
+
+### Interpreting Results
+
+**Success Criteria**:
+- All performance tests should **PASS** (meet throughput/latency thresholds)
+- All delivery tests should **PASS** (0% message loss)
+
+**Reports**:
+- Performance baseline: `specs/003-kafka-validation/reports/performance-baseline.md`
+- Delivery guarantees: `specs/003-kafka-validation/reports/delivery-guarantees.md`
+
+**Troubleshooting Failed Tests**:
+- Check test logs in `kafka/tests/results/`
+- Review Docker container resource usage (CPU, memory)
+- Verify Feature 002 (CDC Setup) is running: `make status-cdc`
+- See test scripts for detailed failure reasons
+
+### Manual Test Execution
+
+Run individual tests directly:
+
+```bash
+# Performance tests
+bash kafka/tests/performance/run-throughput-test.sh
+bash kafka/tests/performance/run-burst-test.sh
+bash kafka/tests/performance/run-sustained-load-test.sh
+bash kafka/tests/performance/run-snapshot-simulation.sh
+bash kafka/tests/performance/run-startup-test.sh
+
+# Delivery tests
+bash kafka/tests/delivery/test-broker-restart.sh
+bash kafka/tests/delivery/test-consumer-restart.sh
+bash kafka/tests/delivery/test-network-partition.sh
+bash kafka/tests/delivery/test-debezium-offset-recovery.sh
+bash kafka/tests/delivery/test-multiple-consumers.sh
+```
+
+See [specs/003-kafka-validation/](../specs/003-kafka-validation/) for full test specifications and implementation details.
 
 ## Troubleshooting
 

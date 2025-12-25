@@ -1,0 +1,8 @@
+# Ignore all test result files
+*.json
+*.csv
+*.log
+*.txt
+
+# Keep directory structure
+!.gitignore
