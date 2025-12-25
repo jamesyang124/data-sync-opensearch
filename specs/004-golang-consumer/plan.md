@@ -57,7 +57,7 @@ consumer/
 ├── pkg/
 │   └── models/
 │       └── cdc_event.go               # CDC event struct
-├── tests/
+├── consumer/tests/
 │   ├── unit/
 │   │   └── transform_test.go          # Transformation unit tests
 │   └── integration/
@@ -67,5 +67,5 @@ consumer/
 └── Makefile                           # Build, test, run targets
 
 docker-compose.yml                     # Add consumer service
-tests/consumer/            # Integration tests
+consumer/tests/            # Integration tests
 ```

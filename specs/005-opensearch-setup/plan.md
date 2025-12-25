@@ -126,7 +126,7 @@ All five core principles satisfied. Feature focuses on infrastructure deployment
    - Idempotent document indexing using PostgreSQL primary keys as `_id` (data-model.md)
 
 3. **Principle III (Integration Testing)**: ✅ Still PASS
-   - Integration test structure defined in research.md (`tests/opensearch/`)
+   - Integration test structure defined in research.md (`opensearch/tests/`)
    - Quickstart.md documents manual test procedures (Step 6)
    - Contract files enable automated query validation via curl + jq
 
@@ -192,7 +192,7 @@ opensearch/
     ├── hybrid-ranking.sh       # Multi-factor function_score query
     └── filtered-aggregations.sh # Faceted search query
 
-tests/
+opensearch/tests/
 └── opensearch/
     ├── test-index-creation.sh       # Verify indices created correctly
     ├── test-document-insertion.sh   # Verify indexing works

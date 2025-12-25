@@ -132,7 +132,7 @@ postgres/
 │   └── .gitkeep                  # Cache directory for dataset files (mounted volume)
 └── config/
     └── postgresql.conf           # PostgreSQL configuration overrides
-└── tests/                        # Integration tests
+└── postgres/tests/               # Integration tests
     ├── test-database-connectivity.sh   # Verify connection
     ├── test-schema-validation.sh       # Verify tables and constraints
     ├── test-data-loading.sh            # Verify row counts and relationships

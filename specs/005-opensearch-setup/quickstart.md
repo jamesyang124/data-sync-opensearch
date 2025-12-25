@@ -375,13 +375,13 @@ GET /videos_index/_search?explain=true
 
 ```bash
 # Run all integration tests
-./tests/opensearch/test-all.sh
+./opensearch/tests/test-all.sh
 
 # Or run individual tests
-./tests/opensearch/test-index-creation.sh
-./tests/opensearch/test-document-insertion.sh
-./tests/opensearch/test-query-execution.sh
-./tests/opensearch/test-cluster-health.sh
+./opensearch/tests/test-index-creation.sh
+./opensearch/tests/test-document-insertion.sh
+./opensearch/tests/test-query-execution.sh
+./opensearch/tests/test-cluster-health.sh
 ```
 
 **Expected output**:

@@ -4,15 +4,15 @@
 
 ## Summary
 
-Deploy Kafka broker with Zookeeper, configure delivery semantics (at-least-once recommended for CDC), create topics for 3 CDC event streams (videos, users, comments), include monitoring UI (AKHQ or Kafka UI), and provide Makefile targets for lifecycle management.
+Deploy Kafka broker in KRaft mode, configure delivery semantics (at-least-once recommended for CDC), create topics for 3 CDC event streams (videos, users, comments), include monitoring UI (AKHQ or Kafka UI), and provide Makefile targets for lifecycle management.
 
-**Technical Approach**: Kafka 3.5+ with Zookeeper in Docker Compose, topic auto-creation or explicit creation scripts, at-least-once delivery configuration (acks=all, retries=max), monitoring UI for visual management.
+**Technical Approach**: Kafka 3.5+ in KRaft mode via Docker Compose, topic auto-creation or explicit creation scripts, at-least-once delivery configuration (acks=all, retries=max), monitoring UI for visual management.
 
 ## Technical Context
 
 **Language/Version**: YAML for Docker Compose, properties files for Kafka config, Bash for scripts
-**Primary Dependencies**: Kafka 3.5+ (Docker image), Zookeeper 3.8+ (Docker image), AKHQ or Kafka UI for monitoring
-**Storage**: Docker volumes for Kafka data and Zookeeper state
+**Primary Dependencies**: Kafka 3.5+ (Docker image), AKHQ or Kafka UI for monitoring
+**Storage**: Docker volumes for Kafka data
 **Testing**: Integration tests for broker health, topic creation, message delivery guarantees
 **Target Platform**: Docker Desktop for local development
 **Project Type**: Infrastructure configuration (message broker)
@@ -28,21 +28,17 @@ Deploy Kafka broker with Zookeeper, configure delivery semantics (at-least-once 
 - Event-Driven Integration: Kafka as message backbone (**Debezium** → Kafka → **Consumer**)
 - Integration Testing: Tests for delivery guarantees, topic creation
 - Observability: Monitoring UI, broker metrics, consumer lag tracking
-- Docker-First: Kafka and Zookeeper as Docker services
+- Docker-First: Kafka as Docker service
 
 ## Project Structure
 
 ```text
 kafka/
-├── config/
-│   └── server.properties      # Kafka broker configuration
 ├── scripts/
 │   ├── create-topics.sh       # Create CDC topics explicitly
 │   └── check-topics.sh        # List topics and describe
-└── monitoring/
-    └── akhq-config.yml        # AKHQ configuration (if used)
 
-docker-compose.yml           # Add Kafka, Zookeeper, UI services
+docker-compose.yml           # Add Kafka (KRaft) and UI services
 Makefile                    # Add Kafka targets
-tests/kafka/     # Integration tests
+kafka/tests/     # Integration tests
 ```

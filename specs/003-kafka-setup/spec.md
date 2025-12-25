@@ -17,7 +17,7 @@ As a developer, I need to deploy a Kafka broker with configured delivery guarant
 
 **Acceptance Scenarios**:
 
-1. **Given** no existing Kafka broker, **When** developer runs deploy command, **Then** Kafka and Zookeeper containers start successfully with configured delivery mode settings
+1. **Given** no existing Kafka broker, **When** developer runs deploy command, **Then** Kafka broker container starts successfully with configured delivery mode settings (KRaft mode)
 2. **Given** Kafka broker is running, **When** developer produces test message to a topic, **Then** message is accepted and available for consumption according to configured delivery guarantees
 3. **Given** Kafka is configured with chosen delivery mode, **When** developer checks broker configuration, **Then** system reports delivery semantics settings (acks, idempotence, retries) matching the selected mode
 
@@ -57,7 +57,7 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 
 ### Edge Cases
 
-- What happens when all Zookeeper nodes become unavailable? Kafka broker should continue serving existing connections but cannot accept configuration changes or leader elections until Zookeeper recovers.
+- What happens when the KRaft controller becomes unavailable? Kafka broker should recover automatically after controller restart; errors should be logged with clear remediation steps.
 - How does system handle disk full on Kafka broker? Broker should stop accepting new messages and log clear error message about disk space; producers receive error and can retry after space is freed.
 - What happens when producer sends messages faster than broker can persist? Broker applies backpressure by blocking producer requests until buffer space is available; producer may timeout if backpressure exceeds configured timeout.
 - How does system handle topic with replication factor greater than available brokers? Topic creation should fail with clear error message indicating insufficient brokers for requested replication factor.
@@ -67,7 +67,7 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 
 ### Functional Requirements
 
-- **FR-001**: System MUST deploy Kafka broker and Zookeeper via Docker Compose with configurable delivery mode (at-least-once, at-most-once, or exactly-once)
+- **FR-001**: System MUST deploy Kafka broker via Docker Compose with configurable delivery mode (at-least-once, at-most-once, or exactly-once) using KRaft mode
 - **FR-002**: System MUST configure Kafka broker with settings appropriate for chosen delivery semantics (acks, enable.idempotence, retries, max.in.flight.requests)
 - **FR-003**: System MUST create topics for CDC events from Debezium (dbserver.public.videos, dbserver.public.users, dbserver.public.comments) with configurable replication factor and partition count
 - **FR-004**: System MUST provide producer configuration template matching chosen delivery mode for Debezium connector
@@ -76,7 +76,7 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 - **FR-007**: System MUST expose Kafka broker on configurable port with environment variable overrides
 - **FR-008**: System MUST provide Makefile targets for Kafka lifecycle management (start-kafka, stop-kafka, restart-kafka, status-kafka, create-topics)
 - **FR-009**: System MUST include monitoring interface (Kafka UI, AKHQ, or similar) for viewing broker health, topics, partitions, and consumer groups
-- **FR-010**: System MUST configure Zookeeper with persistent storage to survive container restarts
+- **FR-010**: System MUST configure KRaft controller settings for single-node development
 - **FR-011**: System MUST document delivery mode trade-offs (performance vs. reliability) with recommended choice for CDC use case
 - **FR-012**: System MUST validate topic configuration on startup and report errors for misconfigured replication or partitions
 - **FR-013**: System MUST preserve Debezium's default CDC envelope (no unwrap) to retain before/after, source, and timestamp metadata
@@ -85,7 +85,6 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 ### Key Entities
 
 - **Kafka Broker**: Message broker providing persistent, ordered, distributed commit log for CDC events, configured with delivery guarantee settings
-- **Zookeeper**: Coordination service managing Kafka cluster metadata, controller election, and configuration
 - **Topic**: Named category for messages with configured partitions, replication factor, retention policy, and compaction strategy
 - **Partition**: Ordered, immutable sequence of messages within a topic, enabling parallel consumption and providing ordering guarantee per partition
 - **Producer Configuration**: Settings controlling message delivery behavior including acknowledgment level (acks), idempotence, retries, and batching
@@ -96,20 +95,20 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 
 ### Measurable Outcomes
 
-- **SC-001**: Developer can deploy complete Kafka infrastructure (Kafka + Zookeeper + monitoring UI) in under 5 minutes using single Makefile command
+- **SC-001**: Developer can deploy complete Kafka infrastructure (Kafka + monitoring UI) in under 5 minutes using single Makefile command
 - **SC-002**: Kafka broker handles 1000 messages per second throughput without accumulating lag or consuming excessive memory
 - **SC-003**: Messages published with configured delivery mode exhibit expected guarantees under normal operation (0% loss for at-least-once/exactly-once, 0% duplication for at-most-once/exactly-once)
 - **SC-004**: Broker remains available during planned rolling restart with <10 seconds of increased latency
 - **SC-005**: Topic creation completes in under 5 seconds with successful partition assignment across brokers
 - **SC-006**: Monitoring UI loads and displays broker metrics in under 3 seconds
 - **SC-007**: System provides clear error messages for 100% of configuration issues (insufficient brokers, invalid retention, etc.)
-- **SC-008**: Broker recovers automatically from transient Zookeeper disconnection (<1 minute) without manual intervention
+- **SC-008**: Broker recovers automatically from transient controller restarts (<1 minute) without manual intervention
 - **SC-009**: CDC messages consumed from Kafka include Debezium envelope fields required for consistent replay (before/after, op, source, ts_ms)
 
 ## Assumptions
 
 - **A-001**: Single Kafka broker is sufficient for development (production would require multiple brokers for high availability)
-- **A-002**: Zookeeper runs in standalone mode (single node) for development use
+- **A-002**: Kafka runs in KRaft mode (single node) for development use
 - **A-003**: Default delivery mode of **at-least-once** is acceptable for CDC use case where consumer can handle duplicate events idempotently
 - **A-004**: Topic replication factor of 1 is acceptable for development (no fault tolerance required)
 - **A-005**: Default partition count of 1 per topic is acceptable for development workload
@@ -257,5 +256,5 @@ Based on industry best practices and the project's CDC use case:
 
 - Kafka Delivery Semantics Documentation
 - Kafka Producer/Consumer Configuration Best Practices
-- Zookeeper Deployment Guidelines
+- Kafka KRaft Deployment Guidelines
 - Docker Compose Networking for Kafka

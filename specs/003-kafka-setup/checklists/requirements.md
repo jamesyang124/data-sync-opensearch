@@ -46,7 +46,7 @@
 - User stories are independently testable and prioritized (P1, P2, P3)
 - Comprehensive delivery semantics analysis (at-least-once, at-most-once, exactly-once) with trade-offs
 - Success criteria include both functional (SC-003: delivery guarantees) and performance (SC-002: 1000 msg/sec) metrics
-- Edge cases cover critical failure scenarios (Zookeeper down, disk full, backpressure)
+- Edge cases cover critical failure scenarios (controller down, disk full, backpressure)
 - Assumes features 001 (PostgreSQL) and 002 (Debezium) as prerequisites - logical dependency chain
 - A-003 makes informed recommendation (at-least-once) with clear rationale for CDC use case
 - Configuration recommendations provide specific values without mandating implementation choices

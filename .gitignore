@@ -38,6 +38,9 @@ postgres/sample-data/cache/
 
 # OS
 .DS_Store
+Thumbs.db
+*.tmp
+*.swp
 
 # IDE
 .vscode/
