@@ -1,0 +1,6 @@
+# Python dependencies for PostgreSQL data loading scripts
+# Pinned versions for smaller image size and reproducibility
+datasets==2.19.1  # Python 3.12 compatible, uses newer pyarrow APIs
+pyarrow==16.1.0   # Prebuilt wheels for Python 3.12 (avoids source builds)
+pandas==2.2.2     # Python 3.12 wheels available, avoids source builds
+psycopg2-binary>=2.9.0

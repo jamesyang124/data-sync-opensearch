@@ -8,16 +8,33 @@ bin/
 *.test
 *.out
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
 # Build artifacts
 /dist/
 /tmp/
 
 # Env
 .env
-.env.*
 
 # Logs
 *.log
+
+# PostgreSQL data cache
+postgres/sample-data/*.csv
+postgres/sample-data/*.parquet
+postgres/sample-data/cache/
 
 # OS
 .DS_Store

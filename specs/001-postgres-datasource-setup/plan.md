@@ -5,7 +5,7 @@
 
 ## Summary
 
-Deploy PostgreSQL database with Docker Compose, automatically load 10K-50K subset from Hugging Face youtube-comment-sentiment dataset, normalize into 3-table schema (videos, users, comments), and provide Makefile targets for lifecycle management (start, stop, reset, health, inspect-schema, inspect-data, logs).
+Deploy PostgreSQL database with Docker Compose, automatically load 500K subset from Hugging Face youtube-comment-sentiment dataset, normalize into 3-table schema (videos, users, comments), and provide Makefile targets for lifecycle management (start, stop, reset, health, inspect-schema, inspect-data, logs).
 
 **Technical Approach**: Docker Compose with PostgreSQL 14+, Python script to download and normalize Hugging Face dataset, SQL schema with foreign keys, volume persistence, and Makefile automation for developer workflow.
 
@@ -17,9 +17,9 @@ Deploy PostgreSQL database with Docker Compose, automatically load 10K-50K subse
 **Testing**: Integration tests validating database connectivity, schema creation, data loading, and Makefile commands
 **Target Platform**: Docker Desktop (macOS/Linux/Windows) for local development
 **Project Type**: Infrastructure configuration (database + scripts)
-**Performance Goals**: Database startup <30 seconds, sample data loading 10-50K records in <2 minutes, Makefile commands respond within 5 seconds
+**Performance Goals**: Database startup <30 seconds, sample data loading 500K records in <10 minutes, Makefile commands respond within 5 seconds
 **Constraints**: Single PostgreSQL instance (not clustered), local development only, subset of full dataset for faster setup
-**Scale/Scope**: 3 tables, 10-50K total records, 7 Makefile targets, normalized schema with foreign keys
+**Scale/Scope**: 3 tables, 500K total records, 7 Makefile targets, normalized schema with foreign keys
 
 ## Constitution Check
 
@@ -48,7 +48,7 @@ Deploy PostgreSQL database with Docker Compose, automatically load 10K-50K subse
 **Evaluation**: Feature includes integration test requirements:
 - **Database connectivity test**: Verify PostgreSQL container starts and accepts connections
 - **Schema validation test**: Verify 3 tables created with correct columns, types, and foreign keys
-- **Data loading test**: Verify sample data loaded, row counts match expected range (10-50K)
+- **Data loading test**: Verify sample data loaded, row counts match expected range (500K)
 - **Makefile command test**: Verify all 7 targets execute successfully
 
 **Required Test Coverage** (per constitution):
@@ -116,18 +116,20 @@ specs/001-postgres-datasource-setup/
 
 ```text
 # Infrastructure configuration structure
-docker-compose.yml           # Add PostgreSQL service
+docker-compose.yml           # PostgreSQL service with custom build
 
 postgres/
+├── Dockerfile                    # Multi-stage build (python-builder + postgres final)
+├── requirements.txt              # Python dependencies (datasets, pandas, psycopg2)
 ├── init/
 │   ├── 01-create-schema.sql      # Create tables with foreign keys
 │   └── 02-create-indexes.sql     # Create indexes for performance
 ├── scripts/
-│   ├── download-dataset.py       # Download Hugging Face dataset
-│   ├── normalize-data.py         # Transform to 3-table structure
+│   ├── download-dataset.py       # Download Hugging Face dataset (runs in container)
+│   ├── normalize-data.py         # Transform to 3-table structure (runs in container)
 │   └── load-data.sh              # Orchestrate download + normalize + load
 ├── sample-data/
-│   └── .gitkeep                  # Cache directory for dataset files
+│   └── .gitkeep                  # Cache directory for dataset files (mounted volume)
 └── config/
     └── postgresql.conf           # PostgreSQL configuration overrides
 
@@ -140,10 +142,9 @@ tests/integration/
 
 Makefile                    # Add PostgreSQL targets
 .env.example                # Add PostgreSQL credentials
-requirements.txt            # Python dependencies for data scripts
 ```
 
-**Structure Decision**: Infrastructure configuration with Docker Compose service for PostgreSQL. Data loading uses Python scripts for Hugging Face dataset access and normalization. SQL init scripts create schema on first database startup. Makefile provides developer-friendly commands. This structure enables easy dataset updates and schema evolution.
+**Structure Decision**: Multi-stage Docker build with PostgreSQL and Python runtime. Stage 1 compiles Python dependencies (datasets, pandas, psycopg2). Stage 2 creates final PostgreSQL image with runtime-only Python (no build tools). Dataset downloads at runtime (first container start) and caches in mounted volume. Data loading scripts run inside container for true Docker-first deployment. SQL init scripts create schema on first database startup. Makefile provides developer-friendly commands. This multi-stage approach reduces final image size, avoids build memory issues, and eliminates host Python dependency requirements.
 
 ## Complexity Tracking
 
