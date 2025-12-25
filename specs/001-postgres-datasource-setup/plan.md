@@ -7,7 +7,7 @@
 
 Deploy PostgreSQL database with Docker Compose, automatically load 500K subset from Hugging Face youtube-comment-sentiment dataset, normalize into 3-table schema (videos, users, comments), and provide Makefile targets for lifecycle management (start, stop, reset, health, inspect-schema, inspect-data, logs).
 
-**Technical Approach**: Docker Compose with PostgreSQL 14+, Python script to download and normalize Hugging Face dataset, SQL schema with foreign keys, volume persistence, and Makefile automation for developer workflow.
+**Technical Approach**: Multi-stage Docker build with pre-built dataset (500K records), PostgreSQL 14+ with normalized 3-table schema, CSV files bundled in image, and Makefile automation for developer workflow. Dataset normalized at build-time to optimize runtime performance.
 
 ## Technical Context
 
@@ -17,9 +17,9 @@ Deploy PostgreSQL database with Docker Compose, automatically load 500K subset f
 **Testing**: Integration tests validating database connectivity, schema creation, data loading, and Makefile commands
 **Target Platform**: Docker Desktop (macOS/Linux/Windows) for local development
 **Project Type**: Infrastructure configuration (database + scripts)
-**Performance Goals**: Database startup <30 seconds, sample data loading 500K records in <10 minutes, Makefile commands respond within 5 seconds
-**Constraints**: Single PostgreSQL instance (not clustered), local development only, subset of full dataset for faster setup
-**Scale/Scope**: 3 tables, 500K total records, 7 Makefile targets, normalized schema with foreign keys
+**Performance Goals**: Database startup <10 seconds (CSVs pre-built in image), data loading <30 seconds (COPY from bundled CSVs), Makefile commands respond within 5 seconds
+**Constraints**: Single PostgreSQL instance (not clustered), local development only, subset of full dataset (500K records) for faster setup
+**Scale/Scope**: 3 tables, 895K total records (500K comments, 391K users, 4.5K videos), 7 Makefile targets, normalized schema with foreign keys, 533MB Docker image
 
 ## Constitution Check
 
@@ -132,19 +132,18 @@ postgres/
 │   └── .gitkeep                  # Cache directory for dataset files (mounted volume)
 └── config/
     └── postgresql.conf           # PostgreSQL configuration overrides
-
-tests/integration/
-└── postgres/
+└── tests/                        # Integration tests
     ├── test-database-connectivity.sh   # Verify connection
     ├── test-schema-validation.sh       # Verify tables and constraints
     ├── test-data-loading.sh            # Verify row counts and relationships
-    └── test-makefile-commands.sh       # Verify all Makefile targets
+    ├── test-makefile-commands.sh       # Verify all Makefile targets
+    └── test-all.sh                     # Run all tests
 
 Makefile                    # Add PostgreSQL targets
 .env.example                # Add PostgreSQL credentials
 ```
 
-**Structure Decision**: Multi-stage Docker build with PostgreSQL and Python runtime. Stage 1 compiles Python dependencies (datasets, pandas, psycopg2). Stage 2 creates final PostgreSQL image with runtime-only Python (no build tools). Dataset downloads at runtime (first container start) and caches in mounted volume. Data loading scripts run inside container for true Docker-first deployment. SQL init scripts create schema on first database startup. Makefile provides developer-friendly commands. This multi-stage approach reduces final image size, avoids build memory issues, and eliminates host Python dependency requirements.
+**Structure Decision**: Multi-stage Docker build optimized for size and performance. Stage 1 (dataset-builder) uses python:3.12-slim to download and normalize 500K records from Hugging Face at build-time, producing ready-to-load CSV files. Stage 2 creates final PostgreSQL 14-alpine image with only the pre-built CSVs (no Python data processing libraries needed). Data loads instantly at runtime via PostgreSQL COPY command. This approach reduces final image to 533MB (vs 702MB with runtime processing), eliminates runtime dataset download (faster startup), and maintains Docker-first deployment with zero host dependencies.
 
 ## Complexity Tracking
 

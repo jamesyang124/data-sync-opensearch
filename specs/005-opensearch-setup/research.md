@@ -1,6 +1,6 @@
 # Research: OpenSearch Configuration with Demo Indices
 
-**Feature**: 005-opensearch-config | **Date**: 2025-12-25
+**Feature**: 005-opensearch-setup | **Date**: 2025-12-25
 **Purpose**: Technical research and decision documentation for OpenSearch deployment
 
 ## Overview

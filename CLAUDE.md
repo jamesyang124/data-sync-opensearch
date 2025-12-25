@@ -4,7 +4,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-25
 
 ## Active Technologies
 
-- Shell scripts (bash) for automation, JSON for index mappings and queries, Docker Compose YAML for orchestration + OpenSearch 2.11+ (Docker image), OpenSearch Dashboards 2.11+ (Docker image), curl for REST API interactions (005-opensearch-config)
+- Shell scripts (bash) for automation, JSON for index mappings and queries, Docker Compose YAML for orchestration + OpenSearch 2.11+ (Docker image), OpenSearch Dashboards 2.11+ (Docker image), curl for REST API interactions (005-opensearch-setup)
 
 ## Project Structure
 
@@ -23,7 +23,7 @@ Shell scripts (bash) for automation, JSON for index mappings and queries, Docker
 
 ## Recent Changes
 
-- 005-opensearch-config: Added Shell scripts (bash) for automation, JSON for index mappings and queries, Docker Compose YAML for orchestration + OpenSearch 2.11+ (Docker image), OpenSearch Dashboards 2.11+ (Docker image), curl for REST API interactions
+- 005-opensearch-setup: Added Shell scripts (bash) for automation, JSON for index mappings and queries, Docker Compose YAML for orchestration + OpenSearch 2.11+ (Docker image), OpenSearch Dashboards 2.11+ (Docker image), curl for REST API interactions
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

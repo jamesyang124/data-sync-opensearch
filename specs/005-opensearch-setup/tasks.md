@@ -1,6 +1,6 @@
 # Tasks: OpenSearch Configuration with Demo Indices
 
-**Input**: Design documents from `/specs/005-opensearch-config/`
+**Input**: Design documents from `/specs/005-opensearch-setup/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
 **Tests**: Integration tests are included per constitution Principle III (NON-NEGOTIABLE)
@@ -18,8 +18,8 @@
 This is an infrastructure configuration project using:
 - Docker Compose services at repository root
 - OpenSearch configuration in `opensearch/` directory
-- Integration tests in `tests/integration/opensearch/`
-- Documentation in `specs/005-opensearch-config/`
+- Integration tests in `tests/opensearch/`
+- Documentation in `specs/005-opensearch-setup/`
 
 ---
 
@@ -28,7 +28,7 @@ This is an infrastructure configuration project using:
 **Purpose**: Project initialization and Docker Compose foundation
 
 - [ ] T001 Create OpenSearch directory structure (opensearch/config/, opensearch/mappings/, opensearch/scripts/, opensearch/demo-data/, opensearch/queries/)
-- [ ] T002 Create integration test directory (tests/integration/opensearch/)
+- [ ] T002 Create integration test directory (tests/opensearch/)
 - [ ] T003 [P] Add OpenSearch environment variables to .env.example
 
 ---
@@ -63,9 +63,9 @@ This is an infrastructure configuration project using:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Create test-index-creation.sh in tests/integration/opensearch/test-index-creation.sh (verify 3 indices exist, check mappings for each)
-- [ ] T014 [P] [US1] Create test-document-insertion.sh in tests/integration/opensearch/test-document-insertion.sh (insert test docs, verify indexed, search)
-- [ ] T015 [P] [US1] Create test-cluster-health.sh in tests/integration/opensearch/test-cluster-health.sh (verify green status, node count)
+- [ ] T013 [P] [US1] Create test-index-creation.sh in tests/opensearch/test-index-creation.sh (verify 3 indices exist, check mappings for each)
+- [ ] T014 [P] [US1] Create test-document-insertion.sh in tests/opensearch/test-document-insertion.sh (insert test docs, verify indexed, search)
+- [ ] T015 [P] [US1] Create test-cluster-health.sh in tests/opensearch/test-cluster-health.sh (verify green status, node count)
 
 ### Implementation for User Story 1
 
@@ -75,7 +75,7 @@ This is an infrastructure configuration project using:
 - [ ] T019 [US1] Create create-indices.sh script in opensearch/scripts/create-indices.sh (PUT requests for all 3 indices with mappings, error handling)
 - [ ] T020 [US1] Add Makefile target create-indices (calls opensearch/scripts/create-indices.sh)
 - [ ] T021 [US1] Test index creation: run make create-indices, verify indices exist with correct mappings
-- [ ] T022 [US1] Run integration tests for US1: ./tests/integration/opensearch/test-index-creation.sh, test-document-insertion.sh, test-cluster-health.sh
+- [ ] T022 [US1] Run integration tests for US1: ./tests/opensearch/test-index-creation.sh, test-document-insertion.sh, test-cluster-health.sh
 
 **Checkpoint**: At this point, OpenSearch cluster deploys successfully with 3 pre-configured indices ready for CDC data
 
@@ -89,7 +89,7 @@ This is an infrastructure configuration project using:
 
 ### Integration Tests for User Story 2
 
-- [ ] T023 [P] [US2] Create test-query-execution.sh in tests/integration/opensearch/test-query-execution.sh (run all 4 demo queries, verify result counts >0, check score/sort ordering)
+- [ ] T023 [P] [US2] Create test-query-execution.sh in tests/opensearch/test-query-execution.sh (run all 4 demo queries, verify result counts >0, check score/sort ordering)
 
 ### Implementation for User Story 2
 
@@ -115,7 +115,7 @@ This is an infrastructure configuration project using:
 
 - [ ] T036 [US2] Test demo data loading: run make load-demo-data, verify 10K documents indexed across 3 indices
 - [ ] T037 [US2] Test demo queries individually: run each query script in opensearch/queries/, verify results
-- [ ] T038 [US2] Run integration test for US2: ./tests/integration/opensearch/test-query-execution.sh
+- [ ] T038 [US2] Run integration test for US2: ./tests/opensearch/test-query-execution.sh
 
 **Checkpoint**: At this point, demo queries execute successfully showing 4+ ranking strategies with realistic data
 
@@ -151,7 +151,7 @@ This is an infrastructure configuration project using:
 
 - [ ] T048 [US3] Test monitoring: Start Dashboards, access localhost:5601, verify cluster overview loads
 - [ ] T049 [US3] Test status commands: run make status-opensearch, check-index-stats, check-query-performance, verify output
-- [ ] T050 [US3] Run integration test for US3: ./tests/integration/opensearch/test-cluster-health.sh (updated version)
+- [ ] T050 [US3] Run integration test for US3: ./tests/opensearch/test-cluster-health.sh (updated version)
 
 **Checkpoint**: All user stories independently functional - complete monitoring solution deployed
 
@@ -166,7 +166,7 @@ This is an infrastructure configuration project using:
 - [ ] T053 Validate quickstart.md end-to-end: follow all 7 steps from clean state, verify success
 - [ ] T054 [P] Create troubleshooting guide additions for quickstart.md (common errors: port conflicts, memory limits, disk space)
 - [ ] T055 [P] Update main project README.md with OpenSearch setup instructions and link to quickstart
-- [ ] T056 Create test-all.sh script in tests/integration/opensearch/test-all.sh (runs all integration tests, reports pass/fail summary)
+- [ ] T056 Create test-all.sh script in tests/opensearch/test-all.sh (runs all integration tests, reports pass/fail summary)
 - [ ] T057 Verify all Makefile targets work: test each make command, document expected output
 - [ ] T058 [P] Add environment variable documentation to .env.example (OPENSEARCH_HEAP, OPENSEARCH_PORT, DASHBOARDS_PORT)
 - [ ] T059 Code review: verify all scripts have proper error handling, use set -e for fail-fast
@@ -227,9 +227,9 @@ This is an infrastructure configuration project using:
 
 ```bash
 # Launch all integration tests for User Story 1 together (write first, ensure FAIL):
-Task: "Create test-index-creation.sh in tests/integration/opensearch/test-index-creation.sh"
-Task: "Create test-document-insertion.sh in tests/integration/opensearch/test-document-insertion.sh"
-Task: "Create test-cluster-health.sh in tests/integration/opensearch/test-cluster-health.sh"
+Task: "Create test-index-creation.sh in tests/opensearch/test-index-creation.sh"
+Task: "Create test-document-insertion.sh in tests/opensearch/test-document-insertion.sh"
+Task: "Create test-cluster-health.sh in tests/opensearch/test-cluster-health.sh"
 
 # Launch all index mapping files together:
 Task: "Create videos-index.json mapping in opensearch/mappings/videos-index.json"

@@ -67,5 +67,5 @@ consumer/
 └── Makefile                           # Build, test, run targets
 
 docker-compose.yml                     # Add consumer service
-tests/integration/consumer/            # Integration tests
+tests/consumer/            # Integration tests
 ```

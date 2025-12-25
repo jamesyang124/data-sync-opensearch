@@ -1,6 +1,6 @@
 # Feature Specification: OpenSearch Configuration with Demo Indices
 
-**Feature Branch**: `005-opensearch-config`
+**Feature Branch**: `005-opensearch-setup`
 **Created**: 2025-12-25
 **Status**: Draft
 **Input**: User description: "open search configuration, also prepare index for demo purpose, which would combine several ranking sorting query strategy for it"

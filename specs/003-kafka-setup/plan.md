@@ -1,6 +1,6 @@
 # Implementation Plan: Kafka Broker Configuration with Delivery Guarantees
 
-**Branch**: `003-kafka-config` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
+**Branch**: `003-kafka-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
@@ -44,5 +44,5 @@ kafka/
 
 docker-compose.yml           # Add Kafka, Zookeeper, UI services
 Makefile                    # Add Kafka targets
-tests/integration/kafka/     # Integration tests
+tests/kafka/     # Integration tests
 ```

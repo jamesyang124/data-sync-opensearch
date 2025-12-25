@@ -1,6 +1,6 @@
 # Data Model: OpenSearch Indices
 
-**Feature**: 005-opensearch-config | **Date**: 2025-12-25
+**Feature**: 005-opensearch-setup | **Date**: 2025-12-25
 **Purpose**: Document OpenSearch index schemas and their relationships
 
 ## Overview

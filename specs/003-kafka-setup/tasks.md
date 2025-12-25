@@ -1,12 +1,12 @@
 # Tasks: Kafka Broker Configuration with Delivery Guarantees
 
-**Input**: `/specs/003-kafka-config/spec.md`
+**Input**: `/specs/003-kafka-setup/spec.md`
 **Tests**: Integration tests included
 
 ## Phase 1: Setup
 
 - [ ] T001 Create Kafka directory structure (kafka/config/, kafka/scripts/, kafka/monitoring/)
-- [ ] T002 Create integration test directory (tests/integration/kafka/)
+- [ ] T002 Create integration test directory (tests/kafka/)
 
 ## Phase 2: Foundational
 
