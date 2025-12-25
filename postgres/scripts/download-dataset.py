@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Download YouTube Comment Sentiment dataset from Hugging Face
-and select a representative subset (10K-50K records)
+and select a representative subset (500K records)
 """
 
 import os
@@ -14,9 +14,9 @@ def main():
     print("Dataset: AmaanP314/youtube-comment-sentiment")
 
     try:
-        # Load only the first 30K records to avoid memory issues
-        # This prevents downloading the full 1M+ dataset
-        subset_size = 30000
+        # Load only the first 500K records to keep build time reasonable
+        # This prevents downloading the full 1M+ dataset and reduces build memory usage
+        subset_size = 500000
         print(f"Downloading first {subset_size} records...")
 
         dataset = load_dataset(

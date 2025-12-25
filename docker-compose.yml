@@ -12,10 +12,8 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
       - ./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf
-      - ./postgres/sample-data:/var/lib/postgresql/sample-data
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app}"]
@@ -102,6 +100,3 @@ services:
       OPENSEARCH_URL: http://opensearch:9200
     ports:
       - "8080:8080"
-
-volumes:
-  pgdata:

@@ -33,7 +33,7 @@ echo ""
 
 # Reload data
 echo "Reloading sample data..."
-bash postgres/scripts/load-data.sh
+bash postgres/scripts/load-csv-data.sh
 echo ""
 
 # Get new row counts

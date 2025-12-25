@@ -229,7 +229,7 @@ All feature work is tracked in `/specs/[###-feature-name]/` directory.
 Get started with the PostgreSQL database and sample data:
 
 ```bash
-# Start PostgreSQL with sample data (builds custom image first time)
+# Start PostgreSQL with sample data
 make start
 
 # Verify setup
@@ -241,12 +241,14 @@ make inspect-data
 ```
 
 **What gets loaded**:
-- 30K YouTube comments from Hugging Face dataset
+- 500K YouTube comments from Hugging Face dataset
 - Normalized into 3 tables: videos, users, comments
 - CDC-ready with WAL enabled for Debezium
+- Database is ephemeral; data resets on container restart
 
 **Available commands**:
 - `make start` - Start PostgreSQL and load sample data
+- `make load-data` - Load CSVs into PostgreSQL
 - `make stop` - Stop PostgreSQL
 - `make reset` - Reset database to clean state
 - `make health` - Check database status

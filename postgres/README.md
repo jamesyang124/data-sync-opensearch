@@ -6,32 +6,27 @@ PostgreSQL database with normalized YouTube comment sentiment data for the data-
 
 This PostgreSQL setup provides:
 - **Normalized 3-table schema**: videos, users, comments
-- **Sample dataset**: 30K records from Hugging Face youtube-comment-sentiment dataset
+- **Sample dataset**: 500K records from Hugging Face youtube-comment-sentiment dataset
 - **CDC-ready configuration**: WAL enabled for Debezium integration
-- **Automated data loading**: One-command setup with `make start`
+- **Automated data loading**: Two-step setup with `make data` + `make start`
 
 ## Directory Structure
 
 ```
 postgres/
-├── Dockerfile                     # Custom PostgreSQL image with Python
+├── Dockerfile                     # Custom PostgreSQL image
 ├── requirements.txt               # Python dependencies (datasets, pandas, psycopg2)
 ├── init/                          # SQL initialization scripts
 │   ├── 01-create-schema.sql       # Create tables with foreign keys
 │   └── 02-create-indexes.sql      # Create indexes for performance
-├── scripts/                       # Data loading and management scripts (copied into image)
+├── scripts/                       # Data loading and management scripts (run via Makefile)
 │   ├── download-dataset.py        # Download dataset from Hugging Face (runs in container)
 │   ├── normalize-data.py          # Transform to 3-table structure (runs in container)
-│   ├── load-data.sh               # Orchestrate data loading (calls container scripts)
+│   ├── load-csv-data.sh           # Load CSVs into PostgreSQL
 │   ├── reset-database.sh          # Reset to clean state
 │   ├── inspect-schema.sh          # View schema structure
 │   ├── inspect-data.sh            # View sample data
 │   └── wait-for-postgres.sh       # Health check helper
-├── sample-data/                   # Cached dataset files (mounted volume, gitignored)
-│   ├── youtube-comments-raw.csv
-│   ├── videos.csv
-│   ├── users.csv
-│   └── comments.csv
 └── config/                        # PostgreSQL configuration
     └── postgresql.conf            # CDC-compatible WAL settings
 ```
@@ -41,38 +36,36 @@ postgres/
 This setup uses a **multi-stage Docker build** for an optimized PostgreSQL image:
 
 ### Multi-Stage Build
-**Stage 1 (python-builder)**:
-- Builds Python dependencies (datasets, pandas, psycopg2)
-- Uses full Python image with build tools
-- Output: Compiled Python packages
+**Stage 1 (dataset-builder)**:
+- Uses Python 3.12 slim to download and normalize the dataset at build time
+- Output: Pre-built CSV files (videos, users, comments)
 
 **Stage 2 (final)**:
 - Based on PostgreSQL 14 Alpine
-- Copies only compiled Python packages from stage 1
-- No build tools in final image → smaller image size
-- Runtime dataset download on first start
+- Copies only the CSV files from stage 1
+- No Python runtime or build tools in final image
 
 ### Custom Image Features
 - **Base**: PostgreSQL 14 Alpine
-- **Python 3.11**: Runtime only (no build dependencies)
-- **Dependencies**: Pre-compiled from builder stage
-- **Scripts**: Copied into `/usr/local/bin/postgres-scripts/`
-- **Volume Mount**: `/var/lib/postgresql/sample-data` for dataset caching
+- **Dataset**: Pre-built CSVs baked into the image
+- **Volume Mount**: `/var/lib/postgresql/sample-data` for data loading
+- **Data**: Ephemeral container storage (no persisted volume)
 
 ### Build Process
 ```bash
 # Multi-stage build (automatic with docker-compose)
 docker compose build postgres
-
-# Or manually
-docker build -f postgres/Dockerfile -t data-sync-postgres .
 ```
+
+## Troubleshooting
+
+- If the build fails during `pip install pandas` with `gcc` missing, ensure `postgres/requirements.txt` uses a pandas version with Python 3.12 wheels (2.1+), or add build tools to the dataset builder stage.
+- If dataset download fails with `pyarrow` errors (`PyExtensionType`), upgrade `datasets` and `pyarrow` together so they share the same API generation.
 
 ### Why Multi-Stage?
 - **Smaller image**: Build tools not included in final image
-- **Faster builds**: Python packages cached in builder layer
-- **Runtime download**: Dataset downloaded on first container start (avoids build memory issues)
-- **Persistent cache**: Dataset cached in mounted volume, survives container restarts
+- **Deterministic data**: Dataset prepared at build time
+- **Faster startup**: No runtime dataset download
 
 ## Schema Design
 
@@ -119,16 +112,10 @@ CREATE TABLE comments (
 
 ## Data Loading Process
 
-### First Container Start
-1. **Check Cache**: Looks for existing dataset in `/var/lib/postgresql/sample-data/`
-2. **Download** (if not cached): Fetches youtube-comment-sentiment from Hugging Face (30K subset, runs in container)
-3. **Normalize**: Extracts unique videos and users, creates comments with foreign keys
-4. **Cache**: Saves to mounted volume for future container starts
-5. **Load**: Bulk inserts via PostgreSQL COPY command
-6. **Verify**: Checks foreign key integrity and row counts
-
-### Subsequent Starts
-- Uses cached dataset from mounted volume (instant, no download)
+### Build + First Start
+1. **Build**: Dataset is downloaded and normalized into CSVs during image build
+2. **Load**: `make start` (or `make load-data`) loads the CSVs via PostgreSQL COPY commands
+3. **Verify**: Checks foreign key integrity and row counts
 
 ## Configuration
 
@@ -145,7 +132,7 @@ max_replication_slots = 4
 Expected data distribution after loading:
 - **Videos**: ~1,000-2,000 unique videos
 - **Users**: ~15,000-20,000 unique channels
-- **Comments**: ~30,000 comments
+- **Comments**: ~500,000 comments
 - **Total**: ~46,000-52,000 rows
 
 ## Related Services

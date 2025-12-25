@@ -11,7 +11,7 @@
 
 - Q: Which specific dataset domain should be used (e-commerce, social media, IoT sensors, or general relational data)? → A: Video media platform like YouTube with video room settings
 - Q: Which specific Hugging Face dataset should be used? → A: https://huggingface.co/datasets/AmaanP314/youtube-comment-sentiment
-- Q: How much of the 1M+ comment dataset should be loaded during initial setup? → A: Representative subset (10K-50K records) for fast setup while maintaining data diversity across categories/time periods
+- Q: How much of the 1M+ comment dataset should be loaded during initial setup? → A: Representative subset (500K records) for local development while maintaining data diversity across categories/time periods
 - Q: How should default PostgreSQL credentials be managed? → A: Simple defaults documented in README with .env.example template allowing easy override
 - Q: Should the CSV data be normalized into separate relational tables or loaded as-is? → A: Normalize into 3 related tables (videos, users/channels, comments) with foreign keys
 - Q: Which specific Makefile targets should be provided? → A: Essential commands (start, stop, reset, health, inspect-schema, inspect-data, logs) for quick demo setup
@@ -80,7 +80,7 @@ As a developer, I need to view and understand the sample data schema and content
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a single command to start PostgreSQL database with all dependencies configured
-- **FR-002**: System MUST automatically load a representative subset (10,000-50,000 records) from AmaanP314/youtube-comment-sentiment dataset into PostgreSQL on first initialization, ensuring data diversity across video categories and time periods
+- **FR-002**: System MUST automatically load a representative subset (500,000 records) from AmaanP314/youtube-comment-sentiment dataset into PostgreSQL on first initialization, ensuring data diversity across video categories and time periods
 - **FR-003**: System MUST support video media platform domain with datasets containing videos, users/channels, comments, view statistics, video room settings, and playlists
 - **FR-004**: System MUST provide command to stop and remove all database containers and volumes
 - **FR-005**: System MUST provide command to reset database to initial state with original sample data
@@ -112,7 +112,7 @@ As a developer, I need to view and understand the sample data schema and content
 - **SC-002**: Database reset operation completes in under 30 seconds and restores exact original sample data state
 - **SC-003**: All database operations (start, stop, reset, inspect) succeed with single command execution without requiring manual intervention
 - **SC-004**: Documentation includes working examples for all commands with expected output samples
-- **SC-005**: Sample dataset contains 10,000-50,000 records across at least 3 related tables (videos, users/channels, comments) to adequately demonstrate sync functionality while maintaining fast initialization
+- **SC-005**: Sample dataset contains 500,000 records across at least 3 related tables (videos, users/channels, comments) to adequately demonstrate sync functionality while maintaining fast initialization
 - **SC-006**: Database remains accessible and responsive after 24 hours of continuous operation under normal query load
 - **SC-007**: 100% of error scenarios provide actionable error messages with specific resolution steps
 - **SC-008**: Zero manual configuration required - all defaults work for local development immediately after clone

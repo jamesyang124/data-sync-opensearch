@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# Load YouTube Comment Sentiment data into PostgreSQL
-# Orchestrates: download → normalize → bulk insert
+# Load pre-built CSV data into PostgreSQL
+# CSVs are already normalized and bundled in the Docker image
 
-echo "=== PostgreSQL Data Loading Script ==="
+echo "=== PostgreSQL CSV Data Loading Script ==="
 echo ""
 
 # Check if data is already loaded
@@ -17,40 +17,18 @@ if [ "$ROW_COUNT" -gt "0" ]; then
   exit 0
 fi
 
-echo "Database is empty. Loading sample data..."
+echo "Database is empty. Loading pre-built CSV data..."
 echo ""
 
-# Check if data exists in mounted volume (persists across container restarts)
-echo "Step 1: Checking for cached dataset..."
-if ! docker compose exec -T postgres test -f /var/lib/postgresql/sample-data/videos.csv; then
-  echo "  No cached data found. Downloading from Hugging Face..."
-
-  # Download dataset (runs inside container)
-  if ! docker compose exec -T postgres python3 /usr/local/bin/postgres-scripts/download-dataset.py; then
-    echo "✗ Failed to download dataset"
-    exit 1
-  fi
-  echo ""
-
-  echo "  Normalizing data into 3-table structure..."
-  if ! docker compose exec -T postgres python3 /usr/local/bin/postgres-scripts/normalize-data.py; then
-    echo "✗ Failed to normalize data"
-    exit 1
-  fi
-else
-  echo "  ✓ Using cached data from previous run"
-fi
-echo ""
-
-# Step 2: Bulk insert into PostgreSQL
-echo "Step 2: Bulk inserting data into PostgreSQL..."
+# Bulk insert into PostgreSQL from pre-built CSVs
+echo "Loading data from bundled CSV files..."
 
 # Clear any existing data (handles partial load failures)
 echo "  Clearing any existing data..."
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-app}" -c "\
   TRUNCATE TABLE comments, users, videos CASCADE;"
 
-# Copy videos (from mounted volume inside container)
+# Copy videos
 echo "  Loading videos..."
 docker compose exec -T postgres psql -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-app}" -c "\
   COPY videos(video_id, title, category) \
@@ -72,7 +50,7 @@ docker compose exec -T postgres psql -U "${POSTGRES_USER:-app}" -d "${POSTGRES_D
   WITH (FORMAT csv, HEADER true);"
 
 echo ""
-echo "Step 3: Verifying data load..."
+echo "Verifying data load..."
 
 # Get final counts
 VIDEO_COUNT=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-app}" -tc "SELECT COUNT(*) FROM videos;" | tr -d '[:space:]')

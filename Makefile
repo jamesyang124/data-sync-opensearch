@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data
 
 # Default targets
 up:
@@ -25,7 +25,6 @@ clean:
 # PostgreSQL-specific targets
 start:
 	@echo "Starting PostgreSQL database..."
-	@mkdir -p postgres/sample-data
 	$(COMPOSE) up -d postgres
 	@echo "Waiting for PostgreSQL to be ready..."
 	@sleep 5
@@ -33,7 +32,11 @@ start:
 	@echo "PostgreSQL is ready!"
 	@echo ""
 	@echo "Loading sample data if needed..."
-	@bash postgres/scripts/load-data.sh
+	@bash postgres/scripts/load-csv-data.sh
+
+load-data:
+	@echo "Loading CSVs into PostgreSQL..."
+	@bash postgres/scripts/load-csv-data.sh
 
 stop:
 	@echo "Stopping PostgreSQL..."

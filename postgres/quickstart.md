@@ -14,17 +14,13 @@ Get PostgreSQL running with sample data in under 3 minutes.
 
 ### 1. Build Custom PostgreSQL Image
 
-The image uses **multi-stage build** for optimization:
-- Stage 1: Compiles Python dependencies
-- Stage 2: PostgreSQL with runtime-only Python (no build tools)
-
 ```bash
 # Build happens automatically with first `make start`
 # Or build manually:
 docker compose build postgres
 ```
 
-**Note**: Dataset is downloaded at **runtime** (first container start), not during build.
+**Note**: Dataset is downloaded at build time, not during container start.
 
 ### 2. Start PostgreSQL
 
@@ -36,14 +32,13 @@ This command:
 - Builds Docker image (if not already built)
 - Starts PostgreSQL container
 - Waits for database readiness
-- Downloads youtube-comment-sentiment dataset (~30K records) **on first run only**
-- Normalizes data into 3 tables
-- Caches in mounted volume for future starts
 - Bulk loads data into PostgreSQL
 
 **Expected time**:
-- First run: 2-3 minutes (includes dataset download)
+- First run: 2-6 minutes (includes dataset download during build)
 - Subsequent runs: 30 seconds (uses cached dataset)
+
+**Note**: Database storage is ephemeral; data resets on container restart.
 
 ### 3. Verify Setup
 
@@ -82,6 +77,7 @@ make inspect-data
 | Command | Description |
 |---------|-------------|
 | `make start` | Start PostgreSQL and load sample data |
+| `make load-data` | Load CSVs into PostgreSQL |
 | `make stop` | Stop PostgreSQL container |
 | `make health` | Check database status and table sizes |
 | `make reset` | Reset database to clean state with fresh data |
@@ -192,4 +188,4 @@ make start
 
 Dataset: [AmaanP314/youtube-comment-sentiment](https://huggingface.co/datasets/AmaanP314/youtube-comment-sentiment)
 
-The dataset contains 1M+ YouTube comments. We use a 30K subset for faster local development while maintaining data diversity across video categories.
+The dataset contains 1M+ YouTube comments. We use a 500K subset for local development while maintaining data diversity across video categories.
