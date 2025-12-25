@@ -34,10 +34,13 @@ services:
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:29093'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_LOG_DIRS: '/var/lib/kafka/data'
+      KAFKA_MIN_INSYNC_REPLICAS: 1
       CLUSTER_ID: 'l9mJqFQwS4eYc1pKZJ1tng'
     ports:
       - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -103,3 +106,6 @@ services:
       OPENSEARCH_URL: http://opensearch:9200
     ports:
       - "8080:8080"
+
+volumes:
+  kafka_data:

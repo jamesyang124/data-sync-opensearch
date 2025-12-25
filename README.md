@@ -259,6 +259,10 @@ make inspect-data
 
 See [postgres/quickstart.md](postgres/quickstart.md) for detailed setup guide.
 
+### Kafka Monitoring (Feature 003)
+
+After `make start-kafka`, open Kafka UI at `http://localhost:8081` to inspect brokers, topics, and consumer groups.
+
 ### Debezium CDC Configuration (Feature 002)
 
 Configure Change Data Capture to stream PostgreSQL changes to Kafka:

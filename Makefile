@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-cdc stop-cdc restart-cdc status-cdc register-connector
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-kafka stop-kafka status-kafka create-topics start-cdc stop-cdc restart-cdc status-cdc register-connector
 
 # Default targets
 up:
@@ -101,3 +101,20 @@ status-cdc:
 
 register-connector:
 	@bash debezium/scripts/register-connector.sh
+
+# Kafka-specific targets
+start-kafka:
+	@echo "Starting Kafka..."
+	$(COMPOSE) up -d kafka kafka-ui
+
+stop-kafka:
+	@echo "Stopping Kafka..."
+	$(COMPOSE) stop kafka kafka-ui
+
+status-kafka:
+	@bash kafka/tests/test-broker-health.sh
+	@bash kafka/scripts/check-topics.sh
+
+create-topics:
+	@bash kafka/scripts/create-topics.sh
+

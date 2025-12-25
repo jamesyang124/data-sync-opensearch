@@ -5,17 +5,16 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create Kafka directory structure (kafka/config/, kafka/scripts/, kafka/monitoring/)
-- [ ] T002 Create integration test directory (tests/kafka/)
+- [X] T001 Create Kafka directory structure (kafka/scripts/, kafka/tests/)
+- [X] T002 Create integration test directory (kafka/tests/)
 
 ## Phase 2: Foundational
 
-- [ ] T003 Add Zookeeper service to docker-compose.yml (image: zookeeper:3.8, ports, volumes)
-- [ ] T004 Add Kafka broker service to docker-compose.yml (image: confluentinc/cp-kafka:7.5, depends on Zookeeper, at-least-once config)
-- [ ] T005 [P] Add Kafka UI service (AKHQ or Kafka UI) to docker-compose.yml
-- [ ] T006 Create server.properties in kafka/config/ (acks=all, retries=max, min.insync.replicas=1, log retention)
-- [ ] T007 Add Makefile target start-kafka (docker-compose up kafka services)
-- [ ] T008 [P] Add Makefile target stop-kafka (stop Kafka and Zookeeper)
+- [X] T003 Add Kafka broker service to docker-compose.yml (KRaft mode, image: confluentinc/cp-kafka:7.6, at-least-once config)
+- [X] T004 [P] Add Kafka UI service (AKHQ or Kafka UI) to docker-compose.yml
+- [X] T005 Document broker settings in kafka/README.md (acks=all, retries=max, min.insync.replicas=1, log retention)
+- [X] T006 Add Makefile target start-kafka (docker-compose up kafka services)
+- [X] T007 [P] Add Makefile target stop-kafka (stop Kafka)
 
 ## Phase 3: User Story 1 - Deploy Kafka with Delivery Semantics (P1) 🎯 MVP
 
@@ -25,15 +24,15 @@
 
 ### Integration Tests
 
-- [ ] T009 [P] [US1] Create test-broker-health.sh (verify broker running, Zookeeper connection)
-- [ ] T010 [P] [US1] Create test-topic-creation.sh (create test topic, verify exists)
+- [X] T009 [P] [US1] Create test-broker-health.sh in kafka/tests/ (verify broker running, controller health)
+- [X] T010 [P] [US1] Create test-topic-creation.sh in kafka/tests/ (create test topic, verify exists)
 
 ### Implementation
 
-- [ ] T011 [US1] Create create-topics.sh in kafka/scripts/ (kafka-topics create for 3 CDC topics: dbserver.public.videos, users, comments)
-- [ ] T012 [US1] Add Makefile target create-topics (calls create-topics.sh)
-- [ ] T013 [US1] Test broker: verify startup, check logs, test topic creation
-- [ ] T014 [US1] Run integration tests for US1
+- [X] T011 [US1] Create create-topics.sh in kafka/scripts/ (kafka-topics create for 3 CDC topics: dbserver.public.videos, users, comments)
+- [X] T012 [US1] Add Makefile target create-topics (calls create-topics.sh)
+- [X] T013 [US1] Test broker: verify startup, check logs, test topic creation
+- [X] T014 [US1] Run integration tests for US1
 
 **Checkpoint**: Kafka broker running with CDC topics ready
 
@@ -45,14 +44,14 @@
 
 ### Integration Tests
 
-- [ ] T015 [US2] Create test-delivery-guarantees.sh (produce messages, restart broker, verify all received)
+- [X] T015 [US2] Create test-delivery-guarantees.sh in kafka/tests/ (produce messages, restart broker, verify all received)
 
 ### Implementation
 
-- [ ] T016 [US2] Create test-producer.sh in kafka/scripts/ (produce test messages with acks=all)
-- [ ] T017 [US2] Create test-consumer.sh in kafka/scripts/ (consume and count messages)
-- [ ] T018 [US2] Test delivery: produce, restart broker, consume, verify count
-- [ ] T019 [US2] Run integration test for US2
+- [X] T016 [US2] Create test-producer.sh in kafka/tests/ (produce test messages with acks=all)
+- [X] T017 [US2] Create test-consumer.sh in kafka/tests/ (consume and count messages)
+- [X] T018 [US2] Test delivery: produce, restart broker, consume, verify count
+- [X] T019 [US2] Run integration test for US2
 
 **Checkpoint**: Delivery guarantees validated
 
@@ -64,19 +63,19 @@
 
 ### Implementation
 
-- [ ] T020 [US3] Create check-topics.sh in kafka/scripts/ (kafka-topics --list and --describe)
-- [ ] T021 [P] [US3] Add Makefile target status-kafka (broker health + topic list)
-- [ ] T022 [US3] Document monitoring UI access in README
-- [ ] T023 [US3] Test monitoring: access UI, verify broker metrics visible
+- [X] T020 [US3] Create check-topics.sh in kafka/scripts/ (kafka-topics --list and --describe)
+- [X] T021 [P] [US3] Add Makefile target status-kafka (broker health + topic list)
+- [X] T022 [US3] Document monitoring UI access in README
+- [X] T023 [US3] Test monitoring: access UI, verify broker metrics visible
 
 **Checkpoint**: Monitoring working
 
 ## Phase 6: Polish
 
-- [ ] T024 [P] Create README in kafka/ directory
-- [ ] T025 [P] Add error handling to scripts
-- [ ] T026 Create quickstart.md for Kafka setup
-- [ ] T027 Final validation: clean state, start Kafka, create topics, test delivery
+- [X] T024 [P] Create README in kafka/ directory
+- [X] T025 [P] Add error handling to scripts
+- [X] T026 Create quickstart.md for Kafka setup
+- [X] T027 Final validation: clean state, start Kafka, create topics, test delivery
 
 ---
 
