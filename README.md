@@ -191,12 +191,14 @@ data-sync-opensearch/
 │       ├── research.md              # Research findings
 │       ├── data-model.md            # Data models
 │       └── contracts/               # API contracts
+├── postgres/                        # PostgreSQL datasource
+│   ├── tests/                       # PostgreSQL integration tests
+│   └── ...
+├── debezium/                        # Debezium CDC configuration
+│   ├── tests/                       # Debezium integration tests
+│   └── ...
 ├── src/                             # Source code (to be created)
-├── tests/                           # Tests (to be created)
-│   ├── contract/                    # Contract tests
-│   ├── integration/                 # Integration tests
-│   └── unit/                        # Unit tests
-└── docker-compose.yml               # Service orchestration (to be created)
+└── docker-compose.yml               # Service orchestration
 ```
 
 ## Development Guidelines
@@ -256,6 +258,63 @@ make inspect-data
 - `make inspect-data` - View sample records
 
 See [postgres/quickstart.md](postgres/quickstart.md) for detailed setup guide.
+
+### Debezium CDC Configuration (Feature 002)
+
+Configure Change Data Capture to stream PostgreSQL changes to Kafka:
+
+```bash
+# Start CDC services (Kafka, Kafka UI, Debezium Connect)
+make start-cdc
+
+# Check connector status
+make status-cdc
+
+# Restart connector
+make restart-cdc
+
+# Stop CDC services
+make stop-cdc
+```
+
+**What gets configured**:
+- Kafka broker with KRaft mode (Confluent Platform 7.6.0)
+- Debezium Connect 2.5 with PostgreSQL connector
+- Kafka UI for monitoring and topic visualization
+- CDC topics: `dbserver.public.videos`, `dbserver.public.users`, `dbserver.public.comments`
+- Automatic connector registration on startup
+
+**Web Interfaces**:
+- **Kafka UI**: http://localhost:8081 - Monitor topics, consumers, and CDC events
+- **Kafka Connect API**: http://localhost:8083 - REST API for connector management
+
+**Integration Tests**:
+```bash
+# Test connector registration
+bash debezium/tests/test-connector-registration.sh
+
+# Test CDC event capture
+bash debezium/tests/test-cdc-capture.sh
+
+# Test offset recovery
+bash debezium/tests/test-offset-recovery.sh
+```
+
+**Key Features**:
+- Real-time CDC: Changes captured within seconds
+- Initial snapshot: 895K records (videos + users + comments)
+- ARM64 compatible: Works on Apple Silicon
+- Offset management: No data loss on restart
+- Event transformation: Clean JSON format with ExtractNewRecordState
+
+**Available commands**:
+- `make start-cdc` - Start Kafka, Connect, UI, and register connector
+- `make stop-cdc` - Stop CDC services
+- `make restart-cdc` - Restart connector (delete + re-register)
+- `make status-cdc` - Check connector health
+- `make register-connector` - Manually register connector
+
+See [debezium/README.md](debezium/README.md) for detailed CDC documentation and [specs/002-debezium-setup/quickstart.md](specs/002-debezium-setup/quickstart.md) for setup guide.
 
 ## Configuration Management
 

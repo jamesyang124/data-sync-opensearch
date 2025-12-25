@@ -1,7 +1,7 @@
 # Implementation Plan: OpenSearch Configuration with Demo Indices
 
-**Branch**: `005-opensearch-config` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/005-opensearch-config/spec.md`
+**Branch**: `005-opensearch-setup` | **Date**: 2025-12-25 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/005-opensearch-setup/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
@@ -126,7 +126,7 @@ All five core principles satisfied. Feature focuses on infrastructure deployment
    - Idempotent document indexing using PostgreSQL primary keys as `_id` (data-model.md)
 
 3. **Principle III (Integration Testing)**: ✅ Still PASS
-   - Integration test structure defined in research.md (`tests/integration/opensearch/`)
+   - Integration test structure defined in research.md (`tests/opensearch/`)
    - Quickstart.md documents manual test procedures (Step 6)
    - Contract files enable automated query validation via curl + jq
 
@@ -147,7 +147,7 @@ All five core principles satisfied. Feature focuses on infrastructure deployment
 ### Documentation (this feature)
 
 ```text
-specs/005-opensearch-config/
+specs/005-opensearch-setup/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -192,7 +192,7 @@ opensearch/
     ├── hybrid-ranking.sh       # Multi-factor function_score query
     └── filtered-aggregations.sh # Faceted search query
 
-tests/integration/
+tests/
 └── opensearch/
     ├── test-index-creation.sh       # Verify indices created correctly
     ├── test-document-insertion.sh   # Verify indexing works

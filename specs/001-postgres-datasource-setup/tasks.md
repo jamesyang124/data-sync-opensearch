@@ -18,7 +18,7 @@
 Infrastructure configuration project:
 - Docker Compose at repository root
 - PostgreSQL configuration in `postgres/` directory
-- Integration tests in `tests/integration/postgres/`
+- Integration tests in `postgres/tests/`
 - Python scripts for data loading
 
 ---
@@ -28,7 +28,7 @@ Infrastructure configuration project:
 **Purpose**: Project initialization and directory structure
 
 - [X] T001 Create PostgreSQL directory structure (postgres/init/, postgres/scripts/, postgres/sample-data/, postgres/config/)
-- [X] T002 Create integration test directory (tests/integration/postgres/)
+- [X] T002 Create integration test directory (postgres/tests/)
 - [X] T003 [P] Add PostgreSQL environment variables to .env.example (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT)
 - [X] T004 [P] Create postgres/requirements.txt with Python dependencies (datasets, pandas, psycopg2-binary)
 
@@ -62,9 +62,9 @@ Infrastructure configuration project:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [X] T012 [P] [US1] Create test-database-connectivity.sh in tests/integration/postgres/test-database-connectivity.sh (verify pg_isready, psql connection works)
-- [X] T013 [P] [US1] Create test-schema-validation.sh in tests/integration/postgres/test-schema-validation.sh (verify 3 tables exist, check columns and types, validate foreign keys)
-- [X] T014 [P] [US1] Create test-data-loading.sh in tests/integration/postgres/test-data-loading.sh (verify row counts 10-50K range, check data relationships)
+- [X] T012 [P] [US1] Create test-database-connectivity.sh in postgres/tests/test-database-connectivity.sh (verify pg_isready, psql connection works)
+- [X] T013 [P] [US1] Create test-schema-validation.sh in postgres/tests/test-schema-validation.sh (verify 3 tables exist, check columns and types, validate foreign keys)
+- [X] T014 [P] [US1] Create test-data-loading.sh in postgres/tests/test-data-loading.sh (verify row counts 10-50K range, check data relationships)
 
 ### Implementation for User Story 1
 
@@ -104,7 +104,7 @@ Infrastructure configuration project:
 
 ### Integration Tests for User Story 2
 
-- [X] T027 [US2] Create test-makefile-commands.sh in tests/integration/postgres/test-makefile-commands.sh (test reset command, verify data restored)
+- [X] T027 [US2] Create test-makefile-commands.sh in postgres/tests/test-makefile-commands.sh (test reset command, verify data restored)
 
 ### Implementation for User Story 2
 
@@ -146,7 +146,7 @@ Infrastructure configuration project:
 - [X] T041 Create quickstart.md documenting Docker build, setup steps, Makefile commands, troubleshooting
 - [X] T042 [P] Add error handling to all shell scripts (set -e, check command exits, helpful error messages)
 - [X] T043 [P] Add data validation to normalize-data.py (check required columns exist, handle missing values)
-- [X] T044 Create test-all.sh in tests/integration/postgres/test-all.sh (runs all integration tests, reports summary)
+- [X] T044 Create test-all.sh in postgres/tests/test-all.sh (runs all integration tests, reports summary)
 - [X] T045 Verify all Makefile targets work end-to-end (requires docker build + run)
 - [X] T046 [P] Update main README.md with PostgreSQL setup instructions (Docker-first approach)
 - [X] T047 [P] Add .gitignore entries for postgres/sample-data/ cached files
@@ -195,9 +195,9 @@ Infrastructure configuration project:
 
 ```bash
 # Launch all integration tests together (write first, ensure FAIL):
-Task: "Create test-database-connectivity.sh in tests/integration/postgres/test-database-connectivity.sh"
-Task: "Create test-schema-validation.sh in tests/integration/postgres/test-schema-validation.sh"
-Task: "Create test-data-loading.sh in tests/integration/postgres/test-data-loading.sh"
+Task: "Create test-database-connectivity.sh in postgres/tests/test-database-connectivity.sh"
+Task: "Create test-schema-validation.sh in postgres/tests/test-schema-validation.sh"
+Task: "Create test-data-loading.sh in postgres/tests/test-data-loading.sh"
 
 # Launch schema creation SQL files together:
 Task: "Create 01-create-schema.sql in postgres/init/01-create-schema.sql"

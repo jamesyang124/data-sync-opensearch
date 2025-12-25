@@ -6,9 +6,9 @@ The repository is specification-driven. Source and tests are planned but may be 
 
 - `.specify/`: SpecKit constitution, templates, and scripts (governance and workflow)
 - `specs/`: Per-feature specs, plans, tasks, research, and contracts
+- `<component>/tests/`: Component-specific integration tests (e.g., `postgres/tests/`, `debezium/tests/`)
 - `src/`: Application source code (consumer app in Go) when implemented
-- `tests/`: Contract, integration, and unit tests (expected structure)
-- `docker-compose.yml`: Local pipeline orchestration (expected)
+- `docker-compose.yml`: Local pipeline orchestration
 
 ## Build, Test, and Development Commands
 
@@ -31,7 +31,7 @@ When the runtime stack is present, use `docker-compose up` to run the full CDC p
 ## Testing Guidelines
 
 - Integration testing is mandatory; end-to-end coverage from PostgreSQL write to OpenSearch read.
-- Expect test layout under `tests/contract/`, `tests/integration/`, and `tests/unit/`.
+- Tests are co-located with components: `<component>/tests/` (e.g., `postgres/tests/`, `debezium/tests/`).
 - Kafka schema validation and OpenSearch document structure checks are required before PR approval.
 
 ## Commit & Pull Request Guidelines

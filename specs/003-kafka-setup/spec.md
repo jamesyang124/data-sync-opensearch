@@ -1,6 +1,6 @@
 # Feature Specification: Kafka Broker Configuration with Delivery Guarantees
 
-**Feature Branch**: `003-kafka-config`
+**Feature Branch**: `003-kafka-setup`
 **Created**: 2025-12-25
 **Status**: Draft
 **Input**: User description: "kafka configs, especially for delivery mode choice"

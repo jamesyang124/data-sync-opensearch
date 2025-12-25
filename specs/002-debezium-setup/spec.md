@@ -1,6 +1,6 @@
 # Feature Specification: Debezium CDC Configuration
 
-**Feature Branch**: `002-debezium-config`
+**Feature Branch**: `002-debezium-setup`
 **Created**: 2025-12-25
 **Status**: Draft
 **Input**: User description: "the debezium configuration suggestion"
