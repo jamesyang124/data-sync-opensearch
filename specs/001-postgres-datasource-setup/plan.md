@@ -47,7 +47,7 @@ Deploy PostgreSQL database with Docker Compose, automatically load 500K subset f
 
 **Evaluation**: Feature includes integration test requirements:
 - **Database connectivity test**: Verify PostgreSQL container starts and accepts connections
-- **Schema validation test**: Verify 3 tables created with correct columns, types, and foreign keys
+- **Schema validation test**: Verify 3 tables created with correct columns, types (including `updated_at`), and foreign keys
 - **Data loading test**: Verify sample data loaded, row counts match expected range (500K)
 - **Makefile command test**: Verify all 7 targets execute successfully
 

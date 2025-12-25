@@ -77,7 +77,8 @@ CREATE TABLE videos (
     video_id VARCHAR(255) PRIMARY KEY,
     title TEXT NOT NULL,
     category VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -88,7 +89,8 @@ Stores unique user/channel records.
 CREATE TABLE users (
     channel_id VARCHAR(255) PRIMARY KEY,
     channel_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -106,7 +108,8 @@ CREATE TABLE comments (
     published_at TIMESTAMP,
     sentiment_label VARCHAR(50),
     country_code VARCHAR(10),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 

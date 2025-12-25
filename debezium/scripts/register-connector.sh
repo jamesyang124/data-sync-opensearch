@@ -108,7 +108,7 @@ if echo "$EXISTING" | jq -e '.name' &>/dev/null; then
     sleep 2
   else
     echo "✗ Failed to delete existing connector (HTTP: $HTTP_CODE)"
-    echo "Response: $(echo "$DELETE_RESPONSE" | head -n-1)"
+    echo "Response: $(echo "$DELETE_RESPONSE" | sed '$d')"
     exit 1
   fi
 else
@@ -125,7 +125,7 @@ RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
   "$CONNECT_URL/connectors" 2>/dev/null)
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-BODY=$(echo "$RESPONSE" | head -n-1)
+BODY=$(echo "$RESPONSE" | sed '$d')
 
 # Check if registration succeeded
 if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then

@@ -36,6 +36,7 @@ As a developer, I need the consumer to handle failures gracefully (OpenSearch un
 1. **Given** OpenSearch is temporarily unavailable, **When** consumer attempts to sync event, **Then** consumer retries with exponential backoff until OpenSearch recovers or max retries reached
 2. **Given** consumer receives malformed CDC event, **When** event processing fails validation, **Then** consumer logs error details and moves event to dead letter queue without blocking other messages
 3. **Given** consumer crashes mid-processing, **When** consumer restarts, **Then** consumer resumes from last committed Kafka offset without re-processing or skipping events
+4. **Given** consumer receives an older update with a lower `updated_at` than the stored document, **When** processing the event, **Then** consumer ignores the update to prevent stale writes
 
 ---
 
@@ -70,6 +71,7 @@ As a developer, I need to monitor consumer application health, processing lag, e
 - **FR-001**: Application MUST consume CDC events from Kafka topics (dbserver.public.videos, dbserver.public.users, dbserver.public.comments) using consumer group for offset management
 - **FR-002**: Application MUST transform CDC events (INSERT/UPDATE/DELETE operations) into corresponding OpenSearch operations (index/update/delete documents)
 - **FR-003**: Application MUST use idempotent operations (upsert by document ID) to handle duplicate events from at-least-once delivery
+- **FR-003a**: Application MUST compare `updated_at` from CDC events to ignore stale updates (optimistic lock)
 - **FR-004**: Application MUST provide configurable mapping between Kafka topics and OpenSearch indices
 - **FR-005**: Application MUST handle OpenSearch connection failures with exponential backoff retry (configurable max retries and backoff strategy)
 - **FR-006**: Application MUST move malformed or repeatedly failing events to dead letter queue after exceeding retry limit

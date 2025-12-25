@@ -6,14 +6,16 @@ CREATE TABLE IF NOT EXISTS videos (
     video_id VARCHAR(255) PRIMARY KEY,
     title TEXT NOT NULL,
     category VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Users/Channels table: Unique user/channel records
 CREATE TABLE IF NOT EXISTS users (
     channel_id VARCHAR(255) PRIMARY KEY,
     channel_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Comments table: Comment records with foreign keys
@@ -27,8 +29,33 @@ CREATE TABLE IF NOT EXISTS comments (
     published_at TIMESTAMP,
     sentiment_label VARCHAR(50),
     country_code VARCHAR(10),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Auto-update updated_at on row updates
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER videos_set_updated_at
+BEFORE UPDATE ON videos
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER comments_set_updated_at
+BEFORE UPDATE ON comments
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
 
 -- Grant permissions
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app;

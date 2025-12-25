@@ -79,6 +79,8 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 - **FR-010**: System MUST configure Zookeeper with persistent storage to survive container restarts
 - **FR-011**: System MUST document delivery mode trade-offs (performance vs. reliability) with recommended choice for CDC use case
 - **FR-012**: System MUST validate topic configuration on startup and report errors for misconfigured replication or partitions
+- **FR-013**: System MUST preserve Debezium's default CDC envelope (no unwrap) to retain before/after, source, and timestamp metadata
+- **FR-014**: System MUST define CDC message keys using primary key fields to preserve per-entity ordering within a partition
 
 ### Key Entities
 
@@ -102,6 +104,7 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 - **SC-006**: Monitoring UI loads and displays broker metrics in under 3 seconds
 - **SC-007**: System provides clear error messages for 100% of configuration issues (insufficient brokers, invalid retention, etc.)
 - **SC-008**: Broker recovers automatically from transient Zookeeper disconnection (<1 minute) without manual intervention
+- **SC-009**: CDC messages consumed from Kafka include Debezium envelope fields required for consistent replay (before/after, op, source, ts_ms)
 
 ## Assumptions
 
@@ -115,6 +118,37 @@ As a developer, I need to monitor Kafka broker health, throughput, and lag metri
 - **A-008**: Default retention period of 7 days provides adequate replay window for development and troubleshooting
 - **A-009**: Monitoring UI accessed via localhost without authentication is acceptable for development
 - **A-010**: Producer and consumer applications will be configured with matching delivery semantics to Kafka broker settings
+
+## CDC Event Contract (Default Debezium Envelope)
+
+The default CDC message format is the Debezium envelope (no unwrap SMT). This preserves before/after images and source metadata needed for consistent replay and idempotent sync. Unwrap can be introduced later, but it is not the default for this project.
+
+### Unwrap vs Envelope (Decision Table)
+
+| Choice | Payload Shape | Pros | Cons | Best When |
+|---|---|---|---|---|
+| **Envelope (default)** | `payload.before/after/op/source/ts_ms` | Full CDC metadata, supports deletes/updates with before/after, easier replay | Larger payload, more parsing in consumer | Auditable CDC, consistent replay, debugging |
+| **Unwrap SMT** | `after` only (optional metadata fields) | Simpler consumer, smaller payload, easy indexing | Loses `before` unless added separately, delete handling is trickier | Direct indexing where minimal metadata is fine |
+
+**Envelope shape (schemaless JSON example):**
+```json
+{
+  "payload": {
+    "before": { "comment_id": "123", "text": "old" },
+    "after": { "comment_id": "123", "text": "new" },
+    "op": "u",
+    "source": { "db": "app", "schema": "public", "table": "comments", "lsn": 123456 },
+    "ts_ms": 1710000000000
+  }
+}
+```
+
+**Key requirements:**
+- **Message key**: primary key value (e.g., `comment_id`) to preserve per-entity ordering within a partition.
+- **Operation types**: `c` (create), `u` (update), `d` (delete), `r` (snapshot read).
+- **Deletes**: `before` carries the prior state; `after` is null.
+- **Ordering**: consumers must handle at-least-once delivery with idempotent upserts keyed by primary key.
+- **Optimistic lock**: `after.updated_at` is required for consumers to ignore stale events.
 
 ## Delivery Mode Recommendations
 

@@ -97,12 +97,12 @@ As a developer, I need to view and understand the sample data schema and content
 
 - **Database Container**: Containerized PostgreSQL instance with configured version, credentials, port mappings, and volume mounts
 - **Sample Dataset**: Structured video media platform data from Hugging Face Hub containing videos, users/channels, comments, view statistics, room settings, and playlists with realistic relationships
-- **Database Schema**: Normalized 3-table structure with videos table (video_id PK, title, category, metadata), users table (channel_id PK, channel_name, metadata), and comments table (comment_id PK, video_id FK, channel_id FK, text, likes, replies, timestamp, sentiment, country_code)
+- **Database Schema**: Normalized 3-table structure with videos table (video_id PK, title, category, created_at, updated_at), users table (channel_id PK, channel_name, created_at, updated_at), and comments table (comment_id PK, video_id FK, channel_id FK, comment_text, likes, replies, published_at, sentiment_label, country_code, created_at, updated_at)
 - **Volume**: Persistent storage for database files ensuring data survives container lifecycle operations
 - **Configuration**: Environment variables, connection strings, credentials, and settings required for database access and operation
-- **Videos Table**: Contains unique video records extracted from CSV (video_id, title, category) with one row per distinct video
-- **Users/Channels Table**: Contains unique user/channel records (channel_id, channel_name) with one row per distinct commenter
-- **Comments Table**: Contains comment records with foreign keys to videos and users tables (comment_id, video_id, channel_id, comment_text, likes, replies, published_at, sentiment_label, country_code)
+- **Videos Table**: Contains unique video records extracted from CSV (video_id, title, category, created_at, updated_at) with one row per distinct video
+- **Users/Channels Table**: Contains unique user/channel records (channel_id, channel_name, created_at, updated_at) with one row per distinct commenter
+- **Comments Table**: Contains comment records with foreign keys to videos and users tables (comment_id, video_id, channel_id, comment_text, likes, replies, published_at, sentiment_label, country_code, created_at, updated_at)
 
 ## Success Criteria *(mandatory)*
 

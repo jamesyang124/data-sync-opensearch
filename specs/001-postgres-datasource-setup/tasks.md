@@ -63,7 +63,7 @@ Infrastructure configuration project:
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [X] T012 [P] [US1] Create test-database-connectivity.sh in postgres/tests/test-database-connectivity.sh (verify pg_isready, psql connection works)
-- [X] T013 [P] [US1] Create test-schema-validation.sh in postgres/tests/test-schema-validation.sh (verify 3 tables exist, check columns and types, validate foreign keys)
+- [X] T013 [P] [US1] Create test-schema-validation.sh in postgres/tests/test-schema-validation.sh (verify 3 tables exist, check columns and types including updated_at, validate foreign keys)
 - [X] T014 [P] [US1] Create test-data-loading.sh in postgres/tests/test-data-loading.sh (verify row counts 10-50K range, check data relationships)
 
 ### Implementation for User Story 1
