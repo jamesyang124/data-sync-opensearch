@@ -70,28 +70,32 @@ services:
       - "8083:8083"
 
   opensearch:
-    image: opensearchproject/opensearch:2.12.0
+    image: opensearchproject/opensearch:2.11.0
     environment:
       discovery.type: single-node
       plugins.security.disabled: "true"
-      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+      OPENSEARCH_JAVA_OPTS: "-Xms${OPENSEARCH_HEAP:-512m} -Xmx${OPENSEARCH_HEAP:-512m}"
     ports:
-      - "9200:9200"
+      - "${OPENSEARCH_PORT:-9200}:9200"
       - "9600:9600"
+    volumes:
+      - ./opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./opensearch/config/log4j2.properties:/usr/share/opensearch/config/log4j2.properties
+      - opensearch_data:/usr/share/opensearch/data
     ulimits:
       memlock:
         soft: -1
         hard: -1
 
-  dashboards:
-    image: opensearchproject/opensearch-dashboards:2.12.0
+  opensearch-dashboard:
+    image: opensearchproject/opensearch-dashboards:2.11.0
     depends_on:
       - opensearch
     environment:
       OPENSEARCH_HOSTS: "[\"http://opensearch:9200\"]"
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
     ports:
-      - "5601:5601"
+      - "${DASHBOARDS_PORT:-5601}:5601"
 
   consumer:
     profiles: ["app"]
@@ -109,3 +113,4 @@ services:
 
 volumes:
   kafka_data:
+  opensearch_data:

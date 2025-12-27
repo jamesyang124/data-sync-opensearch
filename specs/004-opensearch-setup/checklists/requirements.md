@@ -48,7 +48,7 @@
 - Detailed analysis of 5 query ranking strategies (BM25 relevance, recency, popularity, hybrid multi-factor, filtered aggregations)
 - Success criteria include both functional (SC-004: decreasing relevance scores, SC-010: support multiple query types) and performance (SC-003: 500ms queries, SC-008: 30s demo data load) metrics
 - Edge cases cover critical failure scenarios (disk full, malformed docs, query timeout, missing index, resource contention)
-- Assumes feature 001 PostgreSQL schema as foundation (A-003) and aligns with consumer feature 004 (A-005: matching document IDs)
+- Assumes feature 001 PostgreSQL schema as foundation (A-003) and aligns with consumer feature 005 (A-005: matching document IDs)
 - Configuration recommendations provide specific settings without mandating implementation (single-node mode, heap size, port configuration)
 - Query Strategy 4 (Hybrid Multi-Factor Ranking) includes detailed example configuration demonstrating function_score usage
 - FR-008 specifies comprehensive Makefile targets (7 commands) for lifecycle management

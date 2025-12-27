@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-cdc stop-cdc restart-cdc status-cdc register-connector test-kafka-performance test-kafka-delivery kafka-reports test-kafka
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics start-cdc stop-cdc restart-cdc status-cdc register-connector
 
 # Default targets
 up:
@@ -38,10 +38,6 @@ load-data:
 	@echo "Loading CSVs into PostgreSQL..."
 	@bash postgres/scripts/load-csv-data.sh
 
-stop:
-	@echo "Stopping PostgreSQL..."
-	$(COMPOSE) stop postgres
-
 health:
 	@echo "PostgreSQL Health Check:"
 	@echo "======================="
@@ -72,6 +68,50 @@ inspect-schema:
 
 inspect-data:
 	@bash postgres/scripts/inspect-data.sh
+
+stop:
+	@echo "Stopping PostgreSQL..."
+	$(COMPOSE) stop postgres
+
+# OpenSearch-specific targets
+start-opensearch:
+	@echo "Starting OpenSearch..."
+	$(COMPOSE) up -d opensearch opensearch-dashboard
+	@bash opensearch/scripts/wait-for-health.sh
+
+stop-opensearch:
+	@echo "Stopping OpenSearch..."
+	$(COMPOSE) stop opensearch opensearch-dashboard
+
+restart-opensearch:
+	@echo "Restarting OpenSearch..."
+	@$(MAKE) stop-opensearch
+	@$(MAKE) start-opensearch
+
+status-opensearch:
+	@echo "OpenSearch Health:"
+	@curl -s http://localhost:$${OPENSEARCH_PORT:-9200}/_cluster/health | jq '.'
+	@echo ""
+	@echo "Nodes:"
+	@curl -s http://localhost:$${OPENSEARCH_PORT:-9200}/_cat/nodes?v
+	@echo ""
+	@echo "Indices:"
+	@curl -s http://localhost:$${OPENSEARCH_PORT:-9200}/_cat/indices?v
+
+create-indices:
+	@bash opensearch/scripts/create-indices.sh
+
+load-demo-data:
+	@bash opensearch/scripts/load-demo-data.sh
+
+run-demo-queries:
+	@bash opensearch/scripts/run-demo-queries.sh
+
+check-index-stats:
+	@bash opensearch/scripts/check-index-stats.sh
+
+check-query-performance:
+	@bash opensearch/scripts/check-query-performance.sh
 
 # Debezium CDC-specific targets
 start-cdc:
