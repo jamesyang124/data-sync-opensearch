@@ -201,6 +201,17 @@ data-sync-opensearch/
 └── docker-compose.yml               # Service orchestration
 ```
 
+## OpenSearch Local Setup
+
+Quickstart guide: `specs/004-opensearch-setup/quickstart.md`
+
+```bash
+make start-opensearch
+make create-indices
+make load-demo-data
+make run-demo-queries
+```
+
 ## Development Guidelines
 
 ### Branch Strategy

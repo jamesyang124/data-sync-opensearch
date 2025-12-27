@@ -1,6 +1,6 @@
 # Research: OpenSearch Setup
 
-**Feature**: 005-consumer-app | **Date**: 2025-12-25
+**Feature**: 004-opensearch-setup | **Date**: 2025-12-25
 **Purpose**: Technical research and decision documentation for OpenSearch configuration
 
 ## Overview
@@ -47,6 +47,7 @@ This document consolidates research findings for deploying OpenSearch cluster wi
 - **Query performance**: Keyword fields for exact match enable efficient filtering without analysis overhead
 - **Document ID consistency**: Using `_id` field matching PostgreSQL primary keys enables idempotent upserts from consumer
 - **Future-proof**: Static mappings with `dynamic: true` allow schema evolution for new fields while enforcing types for known fields
+- **Change ordering**: `updated_at` stored as `date` supports optimistic conflict checks in the consumer for out-of-order CDC events
 
 **Alternatives Considered**:
 - **Fully dynamic mapping**: Rejected - risk of type conflicts (e.g., "123" indexed as text vs number), no control over analyzers
@@ -68,6 +69,10 @@ This document consolidates research findings for deploying OpenSearch cluster wi
 - **Standard analyzer**: Default for English text (tokenization + lowercasing + stop words)
 - **Justification**: YouTube comment data from Hugging Face dataset is English language (A-011 in spec)
 - **Future enhancement**: Could add language detection and multi-language analyzers if needed
+
+**CDC Timestamp Fields**:
+- **`created_at`**: Captures initial row creation for analytics and lifecycle use cases
+- **`updated_at`**: Used by the consumer to skip stale updates when CDC events arrive out of order
 
 **Best Practices Applied**:
 - Enable `_source` field (default) for document retrieval and reindexing
@@ -305,13 +310,13 @@ This document consolidates research findings for deploying OpenSearch cluster wi
 ```makefile
 .PHONY: start-opensearch
 start-opensearch:  ## Start OpenSearch and Dashboards containers
-	docker-compose up -d opensearch opensearch-dashboards
+	docker-compose up -d opensearch opensearch-dashboard
 	@echo "Waiting for OpenSearch to be ready..."
 	@./opensearch/scripts/wait-for-health.sh
 
 .PHONY: stop-opensearch
 stop-opensearch:  ## Stop OpenSearch containers
-	docker-compose stop opensearch opensearch-dashboards
+	docker-compose stop opensearch opensearch-dashboard
 
 .PHONY: restart-opensearch
 restart-opensearch: stop-opensearch start-opensearch  ## Restart OpenSearch
@@ -357,7 +362,7 @@ run-demo-queries:  ## Execute all demo queries
 
 **Configuration**:
 ```yaml
-opensearch-dashboards:
+opensearch-dashboard:
   image: opensearchproject/opensearch-dashboards:2.11.0
   ports:
     - "5601:5601"
@@ -410,7 +415,7 @@ opensearch-dashboards:
 - **Impact**: Field names and types derived from videos/users/comments table structure
 - **Status**: Spec reviewed, mappings aligned
 
-### Feature 004 (Golang Consumer)
+### Feature 005 (Golang Consumer)
 - **Dependency**: Consumer will index documents using REST API
 - **Impact**: Document `_id` must match PostgreSQL primary keys for idempotent upserts
 - **Status**: Coordination needed on document ID format and error handling

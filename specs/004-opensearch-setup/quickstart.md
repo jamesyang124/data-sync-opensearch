@@ -1,6 +1,6 @@
 # Quickstart Guide: OpenSearch Setup
 
-**Feature**: 005-consumer-app | **Date**: 2025-12-25
+**Feature**: 004-opensearch-setup | **Date**: 2025-12-25
 **Purpose**: Step-by-step guide to deploy OpenSearch and run demo queries
 
 ## Prerequisites
@@ -33,14 +33,14 @@ jq --version        # Should show jq-1.6 or higher
 make start-opensearch
 
 # Or using docker-compose directly
-docker-compose up -d opensearch opensearch-dashboards
+docker-compose up -d opensearch opensearch-dashboard
 ```
 
 **Expected output**:
 ```
 Creating network "data-sync-opensearch_default" if not already created
 Creating opensearch container ... done
-Creating opensearch-dashboards container ... done
+Creating opensearch-dashboard container ... done
 Waiting for OpenSearch to be ready...
 ✓ OpenSearch is healthy
 ```
@@ -206,7 +206,7 @@ curl -s http://localhost:9200/videos_index/_doc/video_12345 | jq '._source'
 ### 4.1 Execute All Demo Queries
 
 ```bash
-# Run all 4 demo query strategies
+# Run all 5 demo query strategies
 make run-demo-queries
 
 # Or run script directly
@@ -232,6 +232,10 @@ Most viewed: "Viral Python Tutorial" (15.2M views)
 Query: "tutorial"
 Results: 340 hits
 Top result combines relevance + recency + popularity
+
+=== Query 5: Filtered Aggregations ===
+Filter: category=Education, sentiment breakdown
+Buckets: positive/neutral/negative
 ```
 
 ### 4.2 Run Individual Queries
@@ -241,10 +245,37 @@ Top result combines relevance + recency + popularity
 ```bash
 ./opensearch/queries/relevance-search.sh "machine learning"
 
-# Or use curl with contract JSON
+# REST (curl) using contract JSON
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-consumer-app/contracts/demo-query-relevance.json
+  -d @specs/004-opensearch-setup/contracts/demo-query-relevance.json
+
+# Query DSL JSON (inline)
+cat <<'JSON' > /tmp/relevance-query.json
+{
+  "query": {
+    "multi_match": {
+      "query": "machine learning",
+      "fields": ["title^2", "description", "tags"]
+    }
+  }
+}
+JSON
+
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/relevance-query.json
+
+# Optional client snippet (Python, opensearch-py)
+# Requires: pip install opensearch-py
+python3 - <<'PY'
+from opensearchpy import OpenSearch
+client = OpenSearch("http://localhost:9200")
+resp = client.search(index="videos_index", body={
+    "query": {"multi_match": {"query": "machine learning", "fields": ["title^2", "description", "tags"]}}
+})
+print(resp["hits"]["hits"][0]["_id"])
+PY
 ```
 
 #### Query 2: Recency-Based Sorting
@@ -252,10 +283,22 @@ curl -X POST http://localhost:9200/videos_index/_search \
 ```bash
 ./opensearch/queries/recency-sort.sh
 
-# Or use curl
+# REST (curl) using contract JSON
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-consumer-app/contracts/demo-query-recency.json
+  -d @specs/004-opensearch-setup/contracts/demo-query-recency.json
+
+# Query DSL JSON (inline)
+cat <<'JSON' > /tmp/recency-query.json
+{
+  "query": { "match_all": {} },
+  "sort": [{ "published_at": { "order": "desc" } }]
+}
+JSON
+
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/recency-query.json
 ```
 
 #### Query 3: Popularity-Based Sorting
@@ -263,10 +306,25 @@ curl -X POST http://localhost:9200/videos_index/_search \
 ```bash
 ./opensearch/queries/popularity-sort.sh
 
-# Or use curl
+# REST (curl) using contract JSON
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-consumer-app/contracts/demo-query-popularity.json
+  -d @specs/004-opensearch-setup/contracts/demo-query-popularity.json
+
+# Query DSL JSON (inline)
+cat <<'JSON' > /tmp/popularity-query.json
+{
+  "query": { "match_all": {} },
+  "sort": [
+    { "view_count": { "order": "desc" } },
+    { "published_at": { "order": "desc" } }
+  ]
+}
+JSON
+
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/popularity-query.json
 ```
 
 #### Query 4: Hybrid Multi-Factor Ranking
@@ -274,10 +332,67 @@ curl -X POST http://localhost:9200/videos_index/_search \
 ```bash
 ./opensearch/queries/hybrid-ranking.sh "tutorial"
 
-# Or use curl
+# REST (curl) using contract JSON
 curl -X POST http://localhost:9200/videos_index/_search \
   -H 'Content-Type: application/json' \
-  -d @specs/005-consumer-app/contracts/demo-query-hybrid.json
+  -d @specs/004-opensearch-setup/contracts/demo-query-hybrid.json
+
+# Query DSL JSON (inline)
+cat <<'JSON' > /tmp/hybrid-query.json
+{
+  "query": {
+    "function_score": {
+      "query": { "multi_match": { "query": "tutorial", "fields": ["title^2", "description", "tags"] } },
+      "functions": [
+        { "gauss": { "published_at": { "scale": "30d" } } },
+        { "field_value_factor": { "field": "view_count", "modifier": "log1p" } }
+      ],
+      "score_mode": "sum",
+      "boost_mode": "sum"
+    }
+  }
+}
+JSON
+
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/hybrid-query.json
+```
+
+#### Query 5: Filtered Aggregations
+
+```bash
+./opensearch/queries/filtered-aggregations.sh "tutorial" "Education"
+
+# REST (curl) using contract JSON
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @specs/004-opensearch-setup/contracts/demo-query-aggregations.json
+
+# Query DSL JSON (inline)
+cat <<'JSON' > /tmp/aggregations-query.json
+{
+  "query": {
+    "bool": {
+      "must": { "match": { "title": "tutorial" } },
+      "filter": [
+        { "term": { "category": "Education" } }
+      ]
+    }
+  },
+  "aggs": {
+    "category_breakdown": { "terms": { "field": "category", "size": 10 } },
+    "view_count_stats": { "stats": { "field": "view_count" } },
+    "published_over_time": { "date_histogram": { "field": "published_at", "calendar_interval": "month" } }
+  },
+  "size": 10,
+  "_source": ["video_id", "title", "category", "view_count"]
+}
+JSON
+
+curl -X POST http://localhost:9200/videos_index/_search \
+  -H 'Content-Type: application/json' \
+  -d @/tmp/aggregations-query.json
 ```
 
 ### 4.3 Understanding Query Results
@@ -315,13 +430,17 @@ curl -X POST http://localhost:9200/videos_index/_search \
 
 ---
 
-## Step 5: Explore with OpenSearch Dashboards
+## Step 5: Monitor with OpenSearch Dashboards and CLI
 
 ### 5.1 Open Dev Tools Console
 
 1. Navigate to **http://localhost:5601**
 2. Click **Dev Tools** in left sidebar
 3. Try running queries in the console
+
+**Navigation tips**:
+- **Index Management** → **Indices** shows health, docs, and storage per index
+- **Dev Tools** provides a console for GET/POST requests (examples below)
 
 **Example queries to try**:
 
@@ -368,6 +487,23 @@ GET /videos_index/_search?explain=true
 1. Navigate to **Discover** (left sidebar)
 2. Select `videos_index` pattern
 3. View documents, apply filters, create visualizations
+
+### 5.4 CLI Status Commands
+
+```bash
+make status-opensearch
+make check-index-stats
+make check-query-performance
+```
+
+**Expected output**:
+```
+=== OpenSearch Cluster Status ===
+cluster_name: opensearch-dev
+status: green
+nodes: 1
+indices: 3
+```
 
 ---
 
@@ -434,7 +570,7 @@ curl -X POST http://localhost:9200/videos_index/_search \
 make stop-opensearch
 
 # Or use docker-compose
-docker-compose stop opensearch opensearch-dashboards
+docker-compose stop opensearch opensearch-dashboard
 ```
 
 ### 7.2 Restart OpenSearch
@@ -444,7 +580,7 @@ docker-compose stop opensearch opensearch-dashboards
 make restart-opensearch
 
 # Or use docker-compose
-docker-compose restart opensearch opensearch-dashboards
+docker-compose restart opensearch opensearch-dashboard
 ```
 
 ### 7.3 Delete Indices (Reset State)
@@ -465,8 +601,8 @@ make create-indices
 # Stop and remove containers + volumes
 docker-compose down -v
 
-# Remove OpenSearch data directory
-rm -rf ./opensearch/data/
+# (Optional) Remove the OpenSearch volume explicitly
+docker volume rm data-sync-opensearch_opensearch_data
 ```
 
 ---
@@ -507,6 +643,21 @@ docker logs opensearch
 #   - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"  # Change to 4g if available
 ```
 
+### Issue: OpenSearch exits with code 137
+
+**Symptom**: Container stops immediately or `docker compose ps -a` shows `Exited (137)`
+
+**Cause**: Out-of-memory kill by Docker or host OS
+
+**Solution**:
+```bash
+# Increase heap size for OpenSearch
+export OPENSEARCH_HEAP=1g
+make start-opensearch
+
+# If it still fails, increase Docker Desktop memory to 4GB+
+```
+
 ### Issue: Out of disk space
 
 **Symptom**: Index creation fails with "disk threshold exceeded"
@@ -536,13 +687,23 @@ curl -X PUT http://localhost:9200/_cluster/settings \
 **Solution**:
 ```bash
 # Check Dashboards container logs
-docker logs opensearch-dashboards
+docker logs opensearch-dashboard
 
 # Verify OpenSearch is accessible from Dashboards container
-docker exec opensearch-dashboards curl http://opensearch:9200
+docker exec opensearch-dashboard curl http://opensearch:9200
 
 # If connection fails, check docker network
 docker network inspect data-sync-opensearch_default
+```
+
+### Issue: `jq` not installed
+
+**Symptom**: Scripts fail with `jq: command not found`
+
+**Solution**:
+```bash
+brew install jq  # macOS
+sudo apt-get install -y jq  # Debian/Ubuntu
 ```
 
 ### Issue: Demo queries return no results
@@ -577,7 +738,7 @@ curl -X POST "http://localhost:9200/videos_index/_search?explain=true" \
    - Test end-to-end pipeline: PostgreSQL → Debezium → Kafka → Consumer → OpenSearch
 
 2. **Customize queries**:
-   - Modify demo query contracts in `specs/005-consumer-app/contracts/`
+  - Modify demo query contracts in `specs/004-opensearch-setup/contracts/`
    - Adjust function_score weights in hybrid ranking query
    - Add new queries for your use cases
 

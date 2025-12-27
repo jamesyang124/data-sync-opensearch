@@ -28,9 +28,9 @@ This is an infrastructure configuration project using:
 
 **Purpose**: Project initialization and Docker Compose foundation
 
-- [ ] T001 Create OpenSearch directory structure (opensearch/config/, opensearch/mappings/, opensearch/scripts/, opensearch/demo-data/, opensearch/queries/)
-- [ ] T002 Create integration test directory (opensearch/tests/)
-- [ ] T003 [P] Add OpenSearch environment variables to .env.example
+- [X] T001 Create OpenSearch directory structure (opensearch/config/, opensearch/mappings/, opensearch/scripts/, opensearch/demo-data/, opensearch/queries/)
+- [X] T002 Create integration test directory (opensearch/tests/)
+- [X] T003 [P] Add OpenSearch environment variables to .env.example
 
 ---
 
@@ -40,15 +40,15 @@ This is an infrastructure configuration project using:
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add OpenSearch service to docker-compose.yml (image: opensearchproject/opensearch:2.11.0, ports: 9200, volumes, environment)
-- [ ] T005 [P] Add OpenSearch Dashboards service to docker-compose.yml (image: opensearchproject/opensearch-dashboards:2.11.0, ports: 5601, depends_on opensearch)
-- [ ] T006 [P] Create opensearch.yml cluster configuration in opensearch/config/opensearch.yml (single-node mode, cluster name, discovery type)
-- [ ] T007 [P] Create log4j2.properties logging configuration in opensearch/config/log4j2.properties
-- [ ] T008 Add Makefile target start-opensearch (docker-compose up opensearch opensearch-dashboards, wait-for-health)
-- [ ] T009 [P] Add Makefile target stop-opensearch (docker-compose stop opensearch opensearch-dashboards)
-- [ ] T010 [P] Add Makefile target restart-opensearch (calls stop-opensearch then start-opensearch)
-- [ ] T011 [P] Add Makefile target status-opensearch (curl cluster health endpoint with jq formatting)
-- [ ] T012 Create wait-for-health.sh script in opensearch/scripts/wait-for-health.sh (poll /_cluster/health until green)
+- [X] T004 Add OpenSearch service to docker-compose.yml (image: opensearchproject/opensearch:2.11.0, ports: 9200, volumes, environment)
+- [X] T005 [P] Add OpenSearch Dashboards service to docker-compose.yml (image: opensearchproject/opensearch-dashboards:2.11.0, ports: 5601, depends_on opensearch)
+- [X] T006 [P] Create opensearch.yml cluster configuration in opensearch/config/opensearch.yml (single-node mode, cluster name, discovery type)
+- [X] T007 [P] Create log4j2.properties logging configuration in opensearch/config/log4j2.properties
+- [X] T008 Add Makefile target start-opensearch (docker-compose up opensearch opensearch-dashboard, wait-for-health)
+- [X] T009 [P] Add Makefile target stop-opensearch (docker-compose stop opensearch opensearch-dashboard)
+- [X] T010 [P] Add Makefile target restart-opensearch (calls stop-opensearch then start-opensearch)
+- [X] T011 [P] Add Makefile target status-opensearch (curl cluster health endpoint with jq formatting)
+- [X] T012 Create wait-for-health.sh script in opensearch/scripts/wait-for-health.sh (poll /_cluster/health until green)
 
 **Checkpoint**: Foundation ready - OpenSearch cluster can start, user story implementation can now begin
 
@@ -64,19 +64,19 @@ This is an infrastructure configuration project using:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Create test-index-creation.sh in opensearch/tests/test-index-creation.sh (verify 3 indices exist, check mappings for each)
-- [ ] T014 [P] [US1] Create test-document-insertion.sh in opensearch/tests/test-document-insertion.sh (insert test docs, verify indexed, search)
-- [ ] T015 [P] [US1] Create test-cluster-health.sh in opensearch/tests/test-cluster-health.sh (verify green status, node count)
+- [X] T013 [P] [US1] Create test-index-creation.sh in opensearch/tests/test-index-creation.sh (verify 3 indices exist, check mappings for each)
+- [X] T014 [P] [US1] Create test-document-insertion.sh in opensearch/tests/test-document-insertion.sh (insert test docs, verify indexed, search)
+- [X] T015 [P] [US1] Create test-cluster-health.sh in opensearch/tests/test-cluster-health.sh (verify green status, node count)
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Create videos-index.json mapping in opensearch/mappings/videos-index.json (copy from contracts/videos-index-mapping.json)
-- [ ] T017 [P] [US1] Create users-index.json mapping in opensearch/mappings/users-index.json (copy from contracts/users-index-mapping.json)
-- [ ] T018 [P] [US1] Create comments-index.json mapping in opensearch/mappings/comments-index.json (copy from contracts/comments-index-mapping.json)
-- [ ] T019 [US1] Create create-indices.sh script in opensearch/scripts/create-indices.sh (PUT requests for all 3 indices with mappings, error handling)
-- [ ] T020 [US1] Add Makefile target create-indices (calls opensearch/scripts/create-indices.sh)
-- [ ] T021 [US1] Test index creation: run make create-indices, verify indices exist with correct mappings
-- [ ] T022 [US1] Run integration tests for US1: ./opensearch/tests/test-index-creation.sh, test-document-insertion.sh, test-cluster-health.sh
+- [X] T016 [P] [US1] Create videos-index.json mapping in opensearch/mappings/videos-index.json (copy from contracts/videos-index-mapping.json)
+- [X] T017 [P] [US1] Create users-index.json mapping in opensearch/mappings/users-index.json (copy from contracts/users-index-mapping.json)
+- [X] T018 [P] [US1] Create comments-index.json mapping in opensearch/mappings/comments-index.json (copy from contracts/comments-index-mapping.json)
+- [X] T019 [US1] Create create-indices.sh script in opensearch/scripts/create-indices.sh (PUT requests for all 3 indices with mappings, error handling)
+- [X] T020 [US1] Add Makefile target create-indices (calls opensearch/scripts/create-indices.sh)
+- [X] T021 [US1] Test index creation: run make create-indices, verify indices exist with correct mappings
+- [X] T022 [US1] Run integration tests for US1: ./opensearch/tests/test-index-creation.sh, test-document-insertion.sh, test-cluster-health.sh
 
 **Checkpoint**: At this point, OpenSearch cluster deploys successfully with 3 pre-configured indices ready for CDC data
 
@@ -90,35 +90,35 @@ This is an infrastructure configuration project using:
 
 ### Integration Tests for User Story 2
 
-- [ ] T023 [P] [US2] Create test-query-execution.sh in opensearch/tests/test-query-execution.sh (run all 4 demo queries, verify result counts >0, check score/sort ordering)
+- [X] T023 [P] [US2] Create test-query-execution.sh in opensearch/tests/test-query-execution.sh (run all 4 demo queries, verify result counts >0, check score/sort ordering)
 
 ### Implementation for User Story 2
 
 **Demo Data Generation**:
 
-- [ ] T024 [P] [US2] Create generate-videos-data.sh script in opensearch/demo-data/generate-videos-data.sh (generate 1000 video documents in JSONL format)
-- [ ] T025 [P] [US2] Create generate-users-data.sh script in opensearch/demo-data/generate-users-data.sh (generate 500 user documents in JSONL format)
-- [ ] T026 [P] [US2] Create generate-comments-data.sh script in opensearch/demo-data/generate-comments-data.sh (generate 8500 comment documents in JSONL format)
-- [ ] T027 [US2] Create load-demo-data.sh script in opensearch/scripts/load-demo-data.sh (call generate scripts, bulk index via /_bulk API, report stats)
-- [ ] T028 [US2] Add Makefile target load-demo-data (calls opensearch/scripts/load-demo-data.sh)
+- [X] T024 [P] [US2] Create generate-videos-data.sh script in opensearch/demo-data/generate-videos-data.sh (generate 1000 video documents in JSONL format)
+- [X] T025 [P] [US2] Create generate-users-data.sh script in opensearch/demo-data/generate-users-data.sh (generate 500 user documents in JSONL format)
+- [X] T026 [P] [US2] Create generate-comments-data.sh script in opensearch/demo-data/generate-comments-data.sh (generate 8500 comment documents in JSONL format)
+- [X] T027 [US2] Create load-demo-data.sh script in opensearch/scripts/load-demo-data.sh (call generate scripts, bulk index via /_bulk API, report stats)
+- [X] T028 [US2] Add Makefile target load-demo-data (calls opensearch/scripts/load-demo-data.sh)
 
 **Demo Query Scripts**:
 
-- [ ] T029 [P] [US2] Create relevance-search.sh in opensearch/queries/relevance-search.sh (multi_match query on title/description/tags, accepts search term param)
-- [ ] T030 [P] [US2] Create recency-sort.sh in opensearch/queries/recency-sort.sh (match_all with sort by published_at desc)
-- [ ] T031 [P] [US2] Create popularity-sort.sh in opensearch/queries/popularity-sort.sh (match_all with sort by view_count desc, tie-break by published_at)
-- [ ] T032 [P] [US2] Create hybrid-ranking.sh in opensearch/queries/hybrid-ranking.sh (function_score with gauss decay on date, field_value_factor on views, accepts search term)
-- [ ] T033 [P] [US2] Create filtered-aggregations.sh in opensearch/queries/filtered-aggregations.sh (bool query with category filter, aggregations on category/sentiment)
-- [ ] T034 [US2] Create run-demo-queries.sh in opensearch/scripts/run-demo-queries.sh (execute all 5 query scripts, format output, show top results)
-- [ ] T035 [US2] Add Makefile target run-demo-queries (calls opensearch/scripts/run-demo-queries.sh)
-- [ ] T035a [US2] Document index mapping rationale in specs/004-opensearch-setup/research.md (field types, analyzers, updated_at usage)
-- [ ] T035b [US2] Add query examples in multiple formats (REST curl, Query DSL JSON, optional client snippet) to specs/004-opensearch-setup/quickstart.md
+- [X] T029 [P] [US2] Create relevance-search.sh in opensearch/queries/relevance-search.sh (multi_match query on title/description/tags, accepts search term param)
+- [X] T030 [P] [US2] Create recency-sort.sh in opensearch/queries/recency-sort.sh (match_all with sort by published_at desc)
+- [X] T031 [P] [US2] Create popularity-sort.sh in opensearch/queries/popularity-sort.sh (match_all with sort by view_count desc, tie-break by published_at)
+- [X] T032 [P] [US2] Create hybrid-ranking.sh in opensearch/queries/hybrid-ranking.sh (function_score with gauss decay on date, field_value_factor on views, accepts search term)
+- [X] T033 [P] [US2] Create filtered-aggregations.sh in opensearch/queries/filtered-aggregations.sh (bool query with category filter, aggregations on category/sentiment)
+- [X] T034 [US2] Create run-demo-queries.sh in opensearch/scripts/run-demo-queries.sh (execute all 5 query scripts, format output, show top results)
+- [X] T035 [US2] Add Makefile target run-demo-queries (calls opensearch/scripts/run-demo-queries.sh)
+- [X] T035a [US2] Document index mapping rationale in specs/004-opensearch-setup/research.md (field types, analyzers, updated_at usage)
+- [X] T035b [US2] Add query examples in multiple formats (REST curl, Query DSL JSON, optional client snippet) to specs/004-opensearch-setup/quickstart.md
 
 **Testing**:
 
-- [ ] T036 [US2] Test demo data loading: run make load-demo-data, verify 10K documents indexed across 3 indices
-- [ ] T037 [US2] Test demo queries individually: run each query script in opensearch/queries/, verify results
-- [ ] T038 [US2] Run integration test for US2: ./opensearch/tests/test-query-execution.sh
+- [X] T036 [US2] Test demo data loading: run make load-demo-data, verify 10K documents indexed across 3 indices
+- [X] T037 [US2] Test demo queries individually: run each query script in opensearch/queries/, verify results
+- [X] T038 [US2] Run integration test for US2: ./opensearch/tests/test-query-execution.sh
 
 **Checkpoint**: At this point, demo queries execute successfully showing 4+ ranking strategies with realistic data
 
@@ -132,29 +132,29 @@ This is an infrastructure configuration project using:
 
 ### Integration Tests for User Story 3
 
-- [ ] T039 [US3] Update test-cluster-health.sh to verify metrics endpoints (cluster stats, index stats, node info)
+- [X] T039 [US3] Update test-cluster-health.sh to verify metrics endpoints (cluster stats, index stats, node info)
 
 ### Implementation for User Story 3
 
 **Monitoring Configuration**:
 
-- [ ] T040 [US3] Verify OpenSearch Dashboards service configured in docker-compose.yml (already in T005 foundational phase)
-- [ ] T041 [US3] Update status-opensearch Makefile target to show detailed cluster stats (nodes, shards, indices count, disk usage)
-- [ ] T042 [P] [US3] Create check-index-stats.sh script in opensearch/scripts/check-index-stats.sh (GET /_cat/indices?v, per-index doc counts and sizes)
-- [ ] T043 [P] [US3] Create check-query-performance.sh script in opensearch/scripts/check-query-performance.sh (run sample query with profile=true, show timing breakdown)
-- [ ] T044 [US3] Add Makefile target check-index-stats (calls opensearch/scripts/check-index-stats.sh)
-- [ ] T045 [P] [US3] Add Makefile target check-query-performance (calls opensearch/scripts/check-query-performance.sh)
+- [X] T040 [US3] Verify OpenSearch Dashboards service configured in docker-compose.yml (already in T005 foundational phase)
+- [X] T041 [US3] Update status-opensearch Makefile target to show detailed cluster stats (nodes, shards, indices count, disk usage)
+- [X] T042 [P] [US3] Create check-index-stats.sh script in opensearch/scripts/check-index-stats.sh (GET /_cat/indices?v, per-index doc counts and sizes)
+- [X] T043 [P] [US3] Create check-query-performance.sh script in opensearch/scripts/check-query-performance.sh (run sample query with profile=true, show timing breakdown)
+- [X] T044 [US3] Add Makefile target check-index-stats (calls opensearch/scripts/check-index-stats.sh)
+- [X] T045 [P] [US3] Add Makefile target check-query-performance (calls opensearch/scripts/check-query-performance.sh)
 
 **Documentation Updates**:
 
-- [ ] T046 [US3] Update quickstart.md Step 5 (Explore with OpenSearch Dashboards) with screenshots/detailed navigation
-- [ ] T047 [P] [US3] Add monitoring section to quickstart.md documenting all status commands and expected outputs
+- [X] T046 [US3] Update quickstart.md Step 5 (Explore with OpenSearch Dashboards) with screenshots/detailed navigation
+- [X] T047 [P] [US3] Add monitoring section to quickstart.md documenting all status commands and expected outputs
 
 **Testing**:
 
-- [ ] T048 [US3] Test monitoring: Start Dashboards, access localhost:5601, verify cluster overview loads
-- [ ] T049 [US3] Test status commands: run make status-opensearch, check-index-stats, check-query-performance, verify output
-- [ ] T050 [US3] Run integration test for US3: ./opensearch/tests/test-cluster-health.sh (updated version)
+- [X] T048 [US3] Test monitoring: Start Dashboards, access localhost:5601, verify cluster overview loads
+- [X] T049 [US3] Test status commands: run make status-opensearch, check-index-stats, check-query-performance, verify output
+- [X] T050 [US3] Run integration test for US3: ./opensearch/tests/test-cluster-health.sh (updated version)
 
 **Checkpoint**: All user stories independently functional - complete monitoring solution deployed
 
@@ -164,16 +164,16 @@ This is an infrastructure configuration project using:
 
 **Purpose**: Documentation, validation, and production readiness improvements
 
-- [ ] T051 [P] Create README.md in opensearch/ directory documenting directory structure and script purposes
-- [ ] T052 [P] Add inline documentation to all shell scripts (header comments explaining purpose, parameters, dependencies)
-- [ ] T053 Validate quickstart.md end-to-end: follow all 7 steps from clean state, verify success
-- [ ] T054 [P] Create troubleshooting guide additions for quickstart.md (common errors: port conflicts, memory limits, disk space)
-- [ ] T055 [P] Update main project README.md with OpenSearch setup instructions and link to quickstart
-- [ ] T056 Create test-all.sh script in opensearch/tests/test-all.sh (runs all integration tests, reports pass/fail summary)
-- [ ] T057 Verify all Makefile targets work: test each make command, document expected output
-- [ ] T058 [P] Add environment variable documentation to .env.example (OPENSEARCH_HEAP, OPENSEARCH_PORT, DASHBOARDS_PORT)
-- [ ] T059 Code review: verify all scripts have proper error handling, use set -e for fail-fast
-- [ ] T060 Final validation: run complete workflow (make start-opensearch, create-indices, load-demo-data, run-demo-queries, check all tests pass)
+- [X] T051 [P] Create README.md in opensearch/ directory documenting directory structure and script purposes
+- [X] T052 [P] Add inline documentation to all shell scripts (header comments explaining purpose, parameters, dependencies)
+- [X] T053 Validate quickstart.md end-to-end: follow all 7 steps from clean state, verify success
+- [X] T054 [P] Create troubleshooting guide additions for quickstart.md (common errors: port conflicts, memory limits, disk space)
+- [X] T055 [P] Update main project README.md with OpenSearch setup instructions and link to quickstart
+- [X] T056 Create test-all.sh script in opensearch/tests/test-all.sh (runs all integration tests, reports pass/fail summary)
+- [X] T057 Verify all Makefile targets work: test each make command, document expected output
+- [X] T058 [P] Add environment variable documentation to .env.example (OPENSEARCH_HEAP, OPENSEARCH_PORT, DASHBOARDS_PORT)
+- [X] T059 Code review: verify all scripts have proper error handling, use set -e for fail-fast
+- [X] T060 Final validation: run complete workflow (make start-opensearch, create-indices, load-demo-data, run-demo-queries, check all tests pass)
 
 ---
 
