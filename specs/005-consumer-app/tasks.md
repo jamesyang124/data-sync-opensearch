@@ -5,17 +5,17 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create consumer directory structure (consumer/cmd/, consumer/internal/, consumer/pkg/, consumer/tests/)
-- [ ] T002 Initialize Go module (go mod init, add dependencies: sarama, opensearch-go)
-- [ ] T003 Create Dockerfile for multi-stage build
-- [ ] T004 [P] Create Makefile with targets (build, test, run, docker-build)
+- [X] T001 Create consumer directory structure (consumer/cmd/, consumer/internal/, consumer/pkg/, consumer/tests/)
+- [X] T002 Initialize Go module (go mod init, add dependencies: sarama, opensearch-go, zap)
+- [X] T003 Create Dockerfile for multi-stage build
+- [X] T004 [P] Create Makefile with targets (build, test, run, docker-build)
 
 ## Phase 2: Foundational
 
-- [ ] T005 Create config.go in consumer/internal/config/ (load environment variables: Kafka brokers, OpenSearch URL, consumer group ID)
-- [ ] T006 [P] Create logger.go in consumer/internal/logger/ (structured JSON logging with correlation IDs)
-- [ ] T007 Create cdc_event.go in consumer/pkg/models/ (Debezium CDC event struct with before/after payload)
-- [ ] T008 Create main.go in consumer/cmd/consumer/ (initialize app, graceful shutdown handling)
+- [X] T005 Create config.go in consumer/internal/config/ (load environment variables: Kafka brokers, OpenSearch URL, consumer group ID)
+- [X] T006 [P] Create logger.go in consumer/internal/logger/ (structured JSON logging with zap and correlation IDs)
+- [X] T007 Create cdc_event.go in consumer/pkg/models/ (Debezium CDC event struct with before/after payload)
+- [X] T008 Create main.go in consumer/cmd/consumer/ (initialize app, graceful shutdown handling)
 
 ## Phase 3: User Story 1 - Consume CDC Events and Sync to OpenSearch (P1) 🎯 MVP
 
@@ -25,39 +25,41 @@
 
 ### Unit Tests
 
-- [ ] T009 [P] [US1] Create transform_test.go for video transformation (test CDC event → video document mapping)
-- [ ] T010 [P] [US1] Create transform_test.go for user transformation
-- [ ] T011 [P] [US1] Create transform_test.go for comment transformation
+- [X] T009 [P] [US1] Create transform_test.go for video transformation in consumer/tests/unit/ (test CDC event → video document mapping)
+- [X] T010 [P] [US1] Create transform_test.go for user transformation in consumer/tests/unit/
+- [X] T011 [P] [US1] Create transform_test.go for comment transformation in consumer/tests/unit/
 
 ### Integration Tests
 
-- [ ] T012 [US1] Create pipeline_test.go (end-to-end: PostgreSQL insert → Kafka event → OpenSearch document)
+- [ ] T012 [US1] Create pipeline_test.go in consumer/tests/integration/pipeline_test.go (end-to-end: PostgreSQL insert → Kafka event → OpenSearch document)
 
 ### Implementation
 
 **Kafka Consumer**:
 
-- [ ] T013 [US1] Create consumer.go in consumer/internal/kafka/ (Sarama consumer group setup, topic subscription)
-- [ ] T014 [US1] Create handler.go in consumer/internal/kafka/ (message handler, call transformer based on topic)
+- [X] T013 [US1] Create consumer.go in consumer/internal/kafka/ (Sarama consumer group setup, topic subscription)
+- [X] T014 [US1] Create handler.go in consumer/internal/kafka/ (message handler, call transformer based on topic)
 
 **Transformation Logic**:
 
-- [ ] T015 [P] [US1] Create video.go in consumer/internal/transform/ (parse CDC event, extract video fields, map to OpenSearch document)
-- [ ] T016 [P] [US1] Create user.go in consumer/internal/transform/ (CDC → user document)
-- [ ] T017 [P] [US1] Create comment.go in consumer/internal/transform/ (CDC → comment document)
+- [X] T015 [P] [US1] Create video.go in consumer/internal/transform/ (parse CDC event, extract video fields, derive OpenSearch _id from video_id, map to document)
+- [X] T016 [P] [US1] Create user.go in consumer/internal/transform/ (CDC → user document, derive OpenSearch _id from user_id)
+- [X] T017 [P] [US1] Create comment.go in consumer/internal/transform/ (CDC → comment document, derive OpenSearch _id from comment_id)
 
 **OpenSearch Indexer**:
 
-- [ ] T018 [US1] Create client.go in consumer/internal/opensearch/ (initialize OpenSearch client with retry logic)
-- [ ] T019 [US1] Create indexer.go in consumer/internal/opensearch/ (bulk indexing, idempotent upsert by document ID, error handling)
+- [X] T018 [US1] Create client.go in consumer/internal/opensearch/ (initialize OpenSearch client with retry logic)
+- [X] T019 [US1] Create indexer.go in consumer/internal/opensearch/ (bulk indexing, idempotent upsert by document ID)
+- [X] T019a [US1] Implement optimistic locking in indexer.go (compare incoming updated_at with stored document; ignore if stale per FR-003a)
 
 **Integration**:
 
-- [ ] T020 [US1] Wire up consumer → transformer → indexer in main.go
-- [ ] T021 [US1] Implement graceful shutdown (flush in-flight messages, commit offsets)
-- [ ] T022 [US1] Add consumer service to docker-compose.yml (depends on Kafka, OpenSearch)
-- [ ] T023 [US1] Test end-to-end: PostgreSQL insert → verify in OpenSearch
-- [ ] T024 [US1] Run unit tests and integration test
+- [X] T020 [US1] Wire up consumer → transformer → indexer in main.go
+- [X] T021 [US1] Implement graceful shutdown (flush in-flight messages, commit offsets)
+- [X] T022 [US1] Add consumer service to docker-compose.yml (depends on Kafka, OpenSearch)
+- [ ] T012 [US1] Create pipeline_test.go in consumer/tests/integration/ (end-to-end test - deferred)
+- [ ] T023 [US1] Test end-to-end: PostgreSQL insert → verify in OpenSearch (requires running system - deferred)
+- [ ] T024 [US1] Run unit tests and integration test (requires running system - deferred)
 
 **Checkpoint**: CDC events syncing to OpenSearch
 
@@ -74,11 +76,10 @@
 
 ### Implementation
 
-- [ ] T027 [US2] Add exponential backoff retry logic to indexer.go (configurable max retries)
-- [ ] T028 [P] [US2] Implement dead letter queue producer (publish failed events to Kafka DLQ topic)
-- [ ] T029 [US2] Add offset commit logic (commit only after successful OpenSearch index)
-- [ ] T030 [US2] Test failure scenarios: OpenSearch down, malformed event, network error
-- [ ] T031 [US2] Run integration tests for US2
+- [X] T027 [US2] Add exponential backoff retry logic to indexer.go (configurable max retries) - Already implemented in client.go
+- [X] T028 [P] [US2] Implement dead letter queue producer (publish failed events to {topic}.dlq; preserve original payload + add error_context metadata)
+- [X] T029 [US2] Add offset commit logic (commit only after successful OpenSearch index) - Implemented via session.MarkMessage() in handler.go
+- [ ] T025-T026, T030-T031 [US2] Test tasks (deferred - require running system)
 
 **Checkpoint**: Reliable delivery with failure handling
 
@@ -90,24 +91,41 @@
 
 ### Implementation
 
-- [ ] T032 [US3] Create server.go in consumer/internal/health/ (HTTP server on :8080)
-- [ ] T033 [P] [US3] Add /health endpoint (check Kafka connection, OpenSearch connection, consumer lag)
-- [ ] T034 [P] [US3] Add /metrics endpoint (processing rate, error count, lag per partition)
-- [ ] T035 [US3] Instrument consumer with metrics collection (increment counters, track latency)
-- [ ] T036 [US3] Test health endpoints: call /health and /metrics, verify responses
-- [ ] T037 [US3] Add structured logging for all operations (use correlation IDs from CDC events)
+- [X] T032 [US3] Create server.go in consumer/internal/health/ (HTTP server on :8080)
+- [X] T033 [P] [US3] Add /health endpoint (check Kafka connection, OpenSearch connection, consumer lag)
+- [X] T034 [P] [US3] Add /metrics endpoint (JSON response providing processing rate, error count, lag per partition)
+- [X] T035 [US3] Instrument consumer with metrics collection (increment counters, track latency)
+- [ ] T036 [US3] Test health endpoints: call /health and /metrics, verify responses (deferred - requires running system)
+- [X] T037 [US3] Add structured logging with zap for all operations (use correlation IDs from CDC events) - Already implemented in T006
 
 **Checkpoint**: Monitoring and observability complete
 
 ## Phase 6: Polish
 
-- [ ] T038 [P] Create README.md in consumer/ directory (architecture, how to run, configuration)
-- [ ] T039 [P] Add comprehensive error handling and input validation
-- [ ] T040 Create quickstart.md for consumer setup and testing
-- [ ] T041 [P] Add environment variable documentation to .env.example
-- [ ] T042 Optimize performance: batch indexing, concurrent workers
-- [ ] T043 Create integration test script that runs full pipeline test
-- [ ] T044 Final validation: clean state, run consumer, verify all user stories working
+- [X] T038 [P] Create README.md in consumer/ directory (architecture, how to run, configuration)
+- [X] T039 [P] Add comprehensive error handling and input validation - Already implemented throughout
+- [ ] T040 Create quickstart.md for consumer setup and testing - Already exists in specs/005-consumer-app/
+- [X] T041 [P] Add environment variable documentation to .env.example
+- [ ] T042 Optimize performance: batch indexing, concurrent workers (deferred - optimization task)
+- [ ] T043 Create integration test script that runs full pipeline test (deferred - requires running system)
+- [ ] T044 Final validation: clean state, run consumer, verify all user stories working (deferred - requires running system)
+
+## Optional Enhancements
+
+### Backpressure Control
+
+- [X] T045 [OPTIONAL] Implement explicit backpressure mechanism (monitor worker queue depth, pause/resume Kafka consumption when threshold exceeded)
+
+**Rationale**: Current implementation relies on blocking indexer calls to slow consumption. Explicit pause/resume provides more controlled backpressure for high-throughput scenarios.
+
+**Implementation**:
+1. Add worker queue depth monitoring to handler.go
+2. Implement pause/resume logic using Sarama's `claim.Messages()` channel control
+3. Add configurable thresholds (e.g., pause at 80% queue capacity, resume at 40%)
+4. Expose queue depth metric in /metrics endpoint
+5. Test with load scenario exceeding OpenSearch capacity
+
+**Priority**: LOW - Current blocking approach is functional; this is an optimization for extreme load scenarios
 
 ---
 

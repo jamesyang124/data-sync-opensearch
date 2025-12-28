@@ -14,7 +14,7 @@ Build Golang consumer application that reads Debezium envelope CDC events from K
 ## Technical Context
 
 **Language/Version**: Golang 1.21+
-**Primary Dependencies**: shopify/sarama (Kafka client), opensearch-project/opensearch-go (OpenSearch client), gorilla/mux or net/http (HTTP endpoints)
+**Primary Dependencies**: shopify/sarama (Kafka client), opensearch-project/opensearch-go (OpenSearch client), gorilla/mux or net/http (HTTP endpoints), uber-go/zap (structured logging)
 **Storage**: No local storage (stateless consumer, offsets in Kafka)
 **Testing**: Unit tests for transformation logic, integration tests for end-to-end pipeline
 **Target Platform**: Docker container (Linux amd64)
@@ -45,7 +45,9 @@ consumer/
 │   │   └── config.go                  # Environment variable loading
 │   ├── kafka/
 │   │   ├── consumer.go                # Sarama consumer group setup
-│   │   └── handler.go                 # Message handler implementation
+│   │   ├── handler.go                 # Message handler implementation
+│   │   ├── handler_with_backpressure.go  # Backpressure-aware handler
+│   │   └── worker_pool.go             # Worker pool with queue management
 │   ├── opensearch/
 │   │   ├── client.go                  # OpenSearch client wrapper
 │   │   └── indexer.go                 # Bulk indexing logic
@@ -72,3 +74,39 @@ consumer/
 docker-compose.yml                     # Add consumer service
 consumer/tests/            # Integration tests
 ```
+
+## Backpressure Control (IMPLEMENTED)
+
+**Status**: ✅ Completed (T045)
+
+The consumer implements queue-based backpressure to prevent overwhelming OpenSearch during high-throughput scenarios:
+
+**Architecture**:
+- **Worker Pool**: Buffered channel queue (`QUEUE_SIZE`) processed by concurrent goroutines (`WORKER_COUNT`)
+- **Threshold Monitoring**: Continuous queue utilization tracking
+- **Automatic Pause**: Kafka consumption pauses when queue reaches `PAUSE_THRESHOLD` (default 80%)
+- **Automatic Resume**: Consumption resumes when queue drops to `RESUME_THRESHOLD` (default 40%)
+- **Hysteresis**: Dual thresholds prevent oscillation between paused/running states
+
+**Implementation Files**:
+- `consumer/internal/kafka/worker_pool.go`: Worker pool with Submit() and ShouldResume() methods
+- `consumer/internal/kafka/handler_with_backpressure.go`: Sarama handler with pause/resume logic
+- `consumer/internal/config/config.go`: Environment variable configuration (QueueSize, PauseThreshold, ResumeThreshold)
+- `consumer/internal/health/server.go`: Backpressure metrics exposure
+
+**Configuration** (via environment variables):
+```bash
+QUEUE_SIZE=1000              # Worker queue buffer size (default: 1000)
+WORKER_COUNT=10              # Concurrent workers (default: 10)
+PAUSE_THRESHOLD=0.8          # Pause at 80% utilization (default: 0.8)
+RESUME_THRESHOLD=0.4         # Resume at 40% utilization (default: 0.4)
+```
+
+**Metrics Exposed** (`/metrics` endpoint):
+- `queue_depth`: Current messages in worker queue
+- `queue_capacity`: Maximum queue size
+- `queue_utilization`: Percentage of capacity used
+- `is_paused`: Whether consumption is currently paused
+- `pause_count`: Total times consumption paused
+
+**Non-Destructive Design**: Messages not marked during pause, preventing data loss on pause/resume cycles.
