@@ -1,31 +1,31 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics start-cdc stop-cdc restart-cdc status-cdc register-connector
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics start-cdc stop-cdc restart-cdc status-cdc register-connector start-producer stop-producer test-producer build-producer
 
 # Default targets
 up:
-	$(COMPOSE) up -d
+	docker compose up -d
 
 down:
-	$(COMPOSE) down
+	docker compose down
 
 restart:
-	$(COMPOSE) down
-	$(COMPOSE) up -d
+	docker compose down
+	docker compose up -d
 
 logs:
-	$(COMPOSE) logs -f --tail=200
+	docker compose logs -f --tail=200
 
 ps:
-	$(COMPOSE) ps
+	docker compose ps
 
 clean:
-	$(COMPOSE) down -v
+	docker compose down -v
 
 # PostgreSQL-specific targets
 start:
 	@echo "Starting PostgreSQL database..."
-	$(COMPOSE) up -d postgres
+	docker compose up -d postgres
 	@echo "Waiting for PostgreSQL to be ready..."
 	@sleep 5
 	@$(COMPOSE) exec -T postgres pg_isready -U $${POSTGRES_USER:-app} || (echo "PostgreSQL not ready yet, waiting..." && sleep 5)
@@ -71,17 +71,17 @@ inspect-data:
 
 stop:
 	@echo "Stopping PostgreSQL..."
-	$(COMPOSE) stop postgres
+	docker compose stop postgres
 
 # OpenSearch-specific targets
 start-opensearch:
 	@echo "Starting OpenSearch..."
-	$(COMPOSE) up -d opensearch opensearch-dashboard
+	docker compose up -d opensearch opensearch-dashboard
 	@bash opensearch/scripts/wait-for-health.sh
 
 stop-opensearch:
 	@echo "Stopping OpenSearch..."
-	$(COMPOSE) stop opensearch opensearch-dashboard
+	docker compose stop opensearch opensearch-dashboard
 
 restart-opensearch:
 	@echo "Restarting OpenSearch..."
@@ -116,7 +116,7 @@ check-query-performance:
 # Debezium CDC-specific targets
 start-cdc:
 	@echo "Starting Debezium CDC services..."
-	$(COMPOSE) up -d kafka kafka-ui connect
+	docker compose up -d kafka kafka-ui connect
 	@echo "Waiting for services to be ready..."
 	@sleep 10
 	@echo "✓ Debezium services started"
@@ -130,7 +130,7 @@ start-cdc:
 
 stop-cdc:
 	@echo "Stopping Debezium CDC services..."
-	$(COMPOSE) stop kafka kafka-ui connect
+	docker compose stop kafka kafka-ui connect
 
 restart-cdc:
 	@echo "Restarting Debezium connector..."
@@ -145,12 +145,12 @@ register-connector:
 # Kafka validation targets (Feature 003)
 test-kafka-performance:
 	@echo "Running Kafka performance benchmarks..."
-	@echo "========================================"
+	@echo "======================================="
 	@bash kafka/tests/test-all-performance.sh
 
 test-kafka-delivery:
 	@echo "Running Kafka delivery guarantee tests..."
-	@echo "=========================================="
+	@echo "========================================="
 	@bash kafka/tests/test-all-delivery.sh
 
 kafka-reports:
@@ -160,9 +160,28 @@ kafka-reports:
 
 test-kafka:
 	@echo "Running all Kafka validation tests..."
-	@echo "======================================"
+	@echo "====================================="
 	@$(MAKE) test-kafka-performance
 	@echo ""
 	@$(MAKE) test-kafka-delivery
 	@echo ""
 	@$(MAKE) kafka-reports
+
+# Producer targets (Feature 006)
+start-producer:
+	@echo "Starting Producer Service..."
+	docker compose up -d producer
+
+stop-producer:
+	@echo "Stopping Producer Service..."
+	docker compose stop producer
+
+build-producer:
+	@echo "Building Producer Service..."
+	@cd producer && make build
+	@echo "Building Producer Docker Image..."
+	@cd producer && make docker-build
+
+test-producer:
+	@echo "Running Producer Tests..."
+	@cd producer && make test

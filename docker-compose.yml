@@ -100,16 +100,38 @@ services:
   consumer:
     profiles: ["app"]
     build:
-      context: .
+      context: ./consumer
       dockerfile: Dockerfile
     depends_on:
       - kafka
       - opensearch
+      - postgres
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BROKERS: kafka:9092
+      CONSUMER_GROUP: cdc-consumer-group
       OPENSEARCH_URL: http://opensearch:9200
+      HEALTH_PORT: "8080"
     ports:
       - "8080:8080"
+    restart: unless-stopped
+
+  producer:
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      PRODUCER_PORT: 8080
+      PRODUCER_METRICS_PORT: 9090
+      PRODUCER_DB_HOST: postgres
+      PRODUCER_DB_PORT: 5432
+      PRODUCER_DB_USER: ${POSTGRES_USER:-app}
+      PRODUCER_DB_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      PRODUCER_DB_NAME: ${POSTGRES_DB:-app}
+    ports:
+      - "8082:8080" # Exposed on different port than consumer to avoid conflict
+      - "9092:9090"
 
 volumes:
   kafka_data:
