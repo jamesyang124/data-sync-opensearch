@@ -82,4 +82,11 @@ As a QA engineer, I need the API service to handle high concurrency (e.g., 500+ 
 - **NFR-001**: Service should be stateless and horizontally scalable (though one instance is likely sufficient).
 - **NFR-002**: Service should provide structured JSON logs for all requests.
 - **NFR-003**: Service should have a graceful shutdown period to finish in-flight requests.
+- **NFR-004**: No authentication or authorization is required. Security boundary is the internal Docker network (A-003); the service trusts all requests on that network.
+
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: Does the REST API require any form of access control? → A: No auth — internal Docker network trust only.
 
