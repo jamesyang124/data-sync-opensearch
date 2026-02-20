@@ -61,3 +61,6 @@ agent-skills
 .claude
 .gemini
 .codex
+CLAUDE.md
+AGENTS.md
+GEMINI.md
