@@ -133,6 +133,26 @@ services:
       - "8082:8080" # Exposed on different port than consumer to avoid conflict
       - "9092:9090"
 
+  benchmark:
+    profiles: ["benchmark"]
+    image: data-sync/benchmark:latest
+    depends_on:
+      - producer
+    volumes:
+      - ./benchmark/scripts:/scripts:ro
+      - ./benchmark/reports:/reports
+    environment:
+      BENCHMARK_BASE_URL: ${BENCHMARK_BASE_URL:-http://producer:8080}
+      BENCHMARK_SCENARIO: ${BENCHMARK_SCENARIO:-sustained}
+      BENCHMARK_TARGET_RPS: ${BENCHMARK_TARGET_RPS:-500}
+      BENCHMARK_DURATION: ${BENCHMARK_DURATION:-120s}
+      BENCHMARK_PREALLOCATED_VUS: ${BENCHMARK_PREALLOCATED_VUS:-100}
+      BENCHMARK_MAX_VUS: ${BENCHMARK_MAX_VUS:-300}
+      BENCHMARK_SETUP_USERS: ${BENCHMARK_SETUP_USERS:-200}
+      BENCHMARK_SETUP_VIDEOS: ${BENCHMARK_SETUP_VIDEOS:-100}
+    # Shell form so BENCHMARK_SCENARIO is resolved at runtime for the output filename
+    entrypoint: ["/bin/sh", "-c", "k6 run /scripts/main.js --out json=/reports/$${BENCHMARK_SCENARIO:-sustained}-raw.ndjson"]
+
 volumes:
   kafka_data:
   opensearch_data:

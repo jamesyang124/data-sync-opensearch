@@ -57,7 +57,13 @@ Thumbs.db
 agent-skills
 .agent-settings
 
+# Benchmark reports (generated output)
+benchmark/reports/
+
 # Coding Agent
 .claude
 .gemini
 .codex
+CLAUDE.md
+AGENTS.md
+GEMINI.md
