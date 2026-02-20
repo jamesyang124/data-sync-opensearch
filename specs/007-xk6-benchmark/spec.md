@@ -56,6 +56,7 @@ As a QA engineer, I need a stress test scenario that deliberately exceeds the ta
 ### Edge Cases
 
 - What happens when the producer app is unreachable at benchmark start? The tool must fail fast with a clear error rather than running a meaningless test.
+- What if pool seeding partially fails during setup? The benchmark MUST proceed if at least 10 users and 5 videos are successfully seeded; if either minimum is not met, the benchmark MUST abort with a clear error indicating the pool size achieved vs. required.
 - How does the tool handle partial failures mid-run (e.g., DB restart)? Metrics should still be captured up to the point of failure so results are usable.
 - What if fake data generation produces a constraint violation (e.g., duplicate email)? The tool must treat 409 Conflict as an expected event and track it separately rather than aborting.
 - What if a referenced parent entity (e.g., user for a comment) was already deleted? The benchmark must maintain referential integrity in its data generation sequence.
@@ -65,13 +66,13 @@ As a QA engineer, I need a stress test scenario that deliberately exceeds the ta
 ### Functional Requirements
 
 - **FR-001**: The benchmark suite MUST support at least three named scenarios: sustained load, ramp-up, and stress test, each selectable at invocation time.
-- **FR-002**: The benchmark MUST generate realistic fake data for all three entity types (Users, Videos, Comments) using a faker extension, covering all required fields per entity.
-- **FR-003**: The benchmark MUST include a mixed CRUD workload: CREATE (insert new records), UPDATE (modify existing records), and DELETE (remove records) across entity types.
+- **FR-002**: The benchmark MUST generate realistic fake data for currently available entity types (Users, Videos) using a faker extension, covering all required fields per entity. Comment data builders MUST be scaffolded as placeholders for future activation.
+- **FR-003**: The benchmark MUST include a fixed CRUD workload mix across available endpoints: 40% User CREATE, 20% User UPDATE, 10% User DELETE, 30% Video CREATE. These weights are not user-configurable; they are documented in the README. Video UPDATE/DELETE and Comment operations are deferred until those producer endpoints ship.
 - **FR-004**: The benchmark MUST maintain referential integrity in its data generation — Comments reference valid Video IDs, Videos reference valid User IDs.
 - **FR-005**: The benchmark MUST collect and report per-endpoint metrics: request count, throughput (RPS), latency percentiles (p50, p95, p99), and HTTP error counts by status code.
 - **FR-006**: The benchmark MUST support configurable target RPS, test duration, and virtual user count via environment variables or a configuration file, without code changes.
 - **FR-007**: The benchmark MUST perform a health check against the producer app's `/health` endpoint before starting the main test and abort if the service is unhealthy.
-- **FR-008**: The benchmark MUST define pass/fail thresholds (error rate < 1%, p95 latency < 50ms at 500 RPS) and emit a clear PASS or FAIL verdict at the end of each run.
+- **FR-008**: The benchmark MUST define pass/fail thresholds (error rate < 1%, p95 latency < 50ms at 500 RPS) and emit a clear PASS or FAIL verdict at the end of each run. The stress scenario MUST always exit with code 0 regardless of threshold breaches — threshold data is captured in the report for human review but does not gate CI.
 - **FR-009**: The benchmark output MUST be machine-readable (JSON or CSV) in addition to a human-readable summary, to allow integration with CI reporting.
 
 ### Key Entities
@@ -87,7 +88,7 @@ As a QA engineer, I need a stress test scenario that deliberately exceeds the ta
 
 - **SC-001**: The benchmark suite can sustain 500 requests/second against the producer app for at least 60 seconds with a measured error rate below 1%.
 - **SC-002**: p95 HTTP response latency remains below 50ms at the 500 RPS sustained load target.
-- **SC-003**: All three entity types (Users, Videos, Comments) and all three operations (CREATE, UPDATE, DELETE) are exercised within a single benchmark run, with no scenario omitting any combination.
+- **SC-003**: All currently available endpoint operations are exercised within a single benchmark run: User CREATE, User UPDATE, User DELETE, and Video CREATE. Comments and Video UPDATE/DELETE are deferred until those producer endpoints ship (tracked in `todos.md`).
 - **SC-004**: A benchmark run produces a structured report within 5 seconds of test completion that includes throughput, latency percentiles, and a PASS/FAIL verdict.
 - **SC-005**: The benchmark configuration (target RPS, duration, thresholds) can be changed and a new run started in under 2 minutes without editing benchmark script source.
 
@@ -98,6 +99,15 @@ As a QA engineer, I need a stress test scenario that deliberately exceeds the ta
 - **A-003**: The benchmark tool runs on the same Docker network as the producer app; no external network routing is required.
 - **A-004**: The PostgreSQL schema matches Feature 001 — Users, Videos, Comments tables with the expected foreign-key relationships.
 - **A-005**: The benchmark does not require data cleanup between runs; the database is expected to accumulate records during testing.
+
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: SC-003 asserts all three entity types and all three CRUD ops must be exercised, but Comments and Video UPDATE/DELETE are not yet implemented in the producer. Should SC-003 be scoped to available endpoints only? → A: Yes — SC-003 scoped to User CRUD + Video CREATE; Comments and Video UPDATE/DELETE deferred until producer endpoints ship.
+- Q: For CI integration, what exit code should the stress scenario emit when it deliberately breaches thresholds? → A: Always exit 0 for stress runs; threshold breaches are captured in the report for human review only, not as a CI gate.
+- Q: If setup() pool seeding partially fails, should the benchmark abort or proceed with a partial pool? → A: Proceed if at least 10 users and 5 videos are seeded; abort below those minimums with a clear error.
+- Q: Should the CRUD workload distribution weights (User CREATE/UPDATE/DELETE, Video CREATE) be user-configurable or fixed? → A: Fixed in code (40% User CREATE, 20% User UPDATE, 10% User DELETE, 30% Video CREATE); documented in README, not exposed as env vars.
 
 ## Non-Functional Requirements
 
