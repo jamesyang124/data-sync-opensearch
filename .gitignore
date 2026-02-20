@@ -52,3 +52,12 @@ Thumbs.db
 !.codex/AGENTS.md
 !.codex/prompts/
 !.codex/prompts/**
+
+# Agent skill
+agent-skills
+.agent-settings
+
+# Coding Agent
+.claude
+.gemini
+.codex
