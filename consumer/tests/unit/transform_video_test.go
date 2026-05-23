@@ -21,12 +21,8 @@ func TestTransformVideoCDCEvent(t *testing.T) {
 					"op": "c",
 					"after": {
 						"video_id": "video_123",
-						"user_id": "user_456",
 						"title": "Sample Video",
-						"description": "Test description",
-						"duration_seconds": 120,
-						"view_count": 0,
-						"like_count": 0,
+						"category": "education",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
@@ -48,17 +44,12 @@ func TestTransformVideoCDCEvent(t *testing.T) {
 					"op": "u",
 					"before": {
 						"video_id": "video_123",
-						"view_count": 100,
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
 					"after": {
 						"video_id": "video_123",
-						"user_id": "user_456",
 						"title": "Updated Video Title",
-						"description": "Updated description",
-						"duration_seconds": 120,
-						"view_count": 150,
-						"like_count": 10,
+						"category": "news",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:30:00Z"
 					},
@@ -80,7 +71,6 @@ func TestTransformVideoCDCEvent(t *testing.T) {
 					"op": "d",
 					"before": {
 						"video_id": "video_123",
-						"user_id": "user_456",
 						"title": "Deleted Video",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
@@ -131,12 +121,8 @@ func TestVideoDocumentMapping(t *testing.T) {
 			"op": "c",
 			"after": {
 				"video_id": "video_123",
-				"user_id": "user_456",
 				"title": "Sample Video",
-				"description": "Test description",
-				"duration_seconds": 120,
-				"view_count": 100,
-				"like_count": 10,
+						"category": "education",
 				"created_at": "2024-06-20T10:00:00Z",
 				"updated_at": "2024-06-20T10:00:00Z"
 			},
@@ -160,8 +146,8 @@ func TestVideoDocumentMapping(t *testing.T) {
 		t.Errorf("Expected title 'Sample Video', got '%s'", title)
 	}
 
-	viewCount := models.GetInt64Field(event.Payload.After, "view_count")
-	if viewCount != 100 {
-		t.Errorf("Expected view_count 100, got %d", viewCount)
+	category := models.GetStringField(event.Payload.After, "category")
+	if category != "education" {
+		t.Errorf("Expected category 'education', got '%s'", category)
 	}
 }

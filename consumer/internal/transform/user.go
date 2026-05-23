@@ -8,12 +8,11 @@ import (
 
 // UserDocument represents a user document for OpenSearch
 type UserDocument struct {
-	ChannelID       string `json:"channel_id"`
-	Username        string `json:"username"`
-	Email           string `json:"email"`
-	SubscriberCount int64  `json:"subscriber_count"`
-	CreatedAt       string `json:"created_at"`
-	UpdatedAt       string `json:"updated_at"`
+	ChannelID   string `json:"channel_id"`
+	ChannelName string `json:"channel_name"`
+	SourceTsMs  int64  `json:"source_ts_ms"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 // TransformUser transforms a CDC event to a user document
@@ -39,12 +38,11 @@ func (t *Transformer) TransformUser(event *models.CDCEvent) (docID string, doc *
 	}
 
 	doc = &UserDocument{
-		ChannelID:       docID,
-		Username:        models.GetStringField(data, "username"),
-		Email:           models.GetStringField(data, "email"),
-		SubscriberCount: models.GetInt64Field(data, "subscriber_count"),
-		CreatedAt:       models.GetStringField(data, "created_at"),
-		UpdatedAt:       models.GetStringField(data, "updated_at"),
+		ChannelID:   docID,
+		ChannelName: models.GetStringField(data, "channel_name"),
+		SourceTsMs:  event.Payload.Source.TsMs,
+		CreatedAt:   models.GetTimestampField(data, "created_at"),
+		UpdatedAt:   models.GetTimestampField(data, "updated_at"),
 	}
 
 	return docID, doc, nil

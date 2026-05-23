@@ -22,10 +22,12 @@ func TestTransformCommentCDCEvent(t *testing.T) {
 					"after": {
 						"comment_id": "comment_999",
 						"video_id": "video_123",
-						"user_id": "user_456",
+						"channel_id": "channel_456",
 						"comment_text": "Great video!",
-						"parent_comment_id": null,
-						"like_count": 0,
+						"likes": 0,
+						"replies": 0,
+						"sentiment_label": "positive",
+						"country_code": "US",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
@@ -47,16 +49,21 @@ func TestTransformCommentCDCEvent(t *testing.T) {
 					"op": "u",
 					"before": {
 						"comment_id": "comment_999",
-						"like_count": 5,
+						"likes": 5,
+				"replies": 0,
+				"sentiment_label": "positive",
+				"country_code": "US",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
 					"after": {
 						"comment_id": "comment_999",
 						"video_id": "video_123",
-						"user_id": "user_456",
+						"channel_id": "channel_456",
 						"comment_text": "Great video! Updated",
-						"parent_comment_id": null,
-						"like_count": 10,
+						"likes": 10,
+						"replies": 0,
+						"sentiment_label": "positive",
+						"country_code": "US",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:30:00Z"
 					},
@@ -123,9 +130,12 @@ func TestCommentDocumentMapping(t *testing.T) {
 			"after": {
 				"comment_id": "comment_999",
 				"video_id": "video_123",
-				"user_id": "user_456",
+				"channel_id": "channel_456",
 				"comment_text": "Great video!",
-				"like_count": 15,
+				"likes": 15,
+				"replies": 0,
+				"sentiment_label": "positive",
+				"country_code": "US",
 				"created_at": "2024-06-20T10:00:00Z",
 				"updated_at": "2024-06-20T10:00:00Z"
 			},
@@ -149,8 +159,8 @@ func TestCommentDocumentMapping(t *testing.T) {
 		t.Errorf("Expected comment_text 'Great video!', got '%s'", commentText)
 	}
 
-	likeCount := models.GetInt64Field(event.Payload.After, "like_count")
-	if likeCount != 15 {
-		t.Errorf("Expected like_count 15, got %d", likeCount)
+	likes := models.GetInt64Field(event.Payload.After, "likes")
+	if likes != 15 {
+		t.Errorf("Expected likes 15, got %d", likes)
 	}
 }

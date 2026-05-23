@@ -21,9 +21,7 @@ func TestTransformUserCDCEvent(t *testing.T) {
 					"op": "c",
 					"after": {
 						"channel_id": "channel_789",
-						"username": "testuser",
-						"email": "test@example.com",
-						"subscriber_count": 0,
+						"channel_name": "Test Channel",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
@@ -50,9 +48,7 @@ func TestTransformUserCDCEvent(t *testing.T) {
 					},
 					"after": {
 						"channel_id": "channel_789",
-						"username": "testuser",
-						"email": "test@example.com",
-						"subscriber_count": 150,
+						"channel_name": "Test Channel",
 						"created_at": "2024-06-20T10:00:00Z",
 						"updated_at": "2024-06-20T10:30:00Z"
 					},
@@ -74,7 +70,7 @@ func TestTransformUserCDCEvent(t *testing.T) {
 					"op": "d",
 					"before": {
 						"channel_id": "channel_789",
-						"username": "testuser",
+						"channel_name": "Test Channel",
 						"updated_at": "2024-06-20T10:00:00Z"
 					},
 					"ts_ms": 1710003600000,
@@ -118,9 +114,7 @@ func TestUserDocumentMapping(t *testing.T) {
 			"op": "c",
 			"after": {
 				"channel_id": "channel_789",
-				"username": "testuser",
-				"email": "test@example.com",
-				"subscriber_count": 500,
+				"channel_name": "Test Channel",
 				"created_at": "2024-06-20T10:00:00Z",
 				"updated_at": "2024-06-20T10:00:00Z"
 			},
@@ -139,13 +133,8 @@ func TestUserDocumentMapping(t *testing.T) {
 		t.Errorf("Expected channel_id 'channel_789', got '%s'", channelID)
 	}
 
-	username := models.GetStringField(event.Payload.After, "username")
-	if username != "testuser" {
-		t.Errorf("Expected username 'testuser', got '%s'", username)
-	}
-
-	subscriberCount := models.GetInt64Field(event.Payload.After, "subscriber_count")
-	if subscriberCount != 500 {
-		t.Errorf("Expected subscriber_count 500, got %d", subscriberCount)
+	channelName := models.GetStringField(event.Payload.After, "channel_name")
+	if channelName != "Test Channel" {
+		t.Errorf("Expected channel_name 'Test Channel', got '%s'", channelName)
 	}
 }
