@@ -7,7 +7,7 @@
  * used by k6 does not support dynamic import() expressions. All scenario
  * modules must be imported at the top of this file.
  */
-import http from 'k6/http';
+import http, { expectedStatuses, setResponseCallback } from 'k6/http';
 import { sleep } from 'k6';
 
 import * as sustained from './scenarios/sustained-load.js';
@@ -16,6 +16,8 @@ import * as stress from './scenarios/stress.js';
 
 const BASE_URL = __ENV.BENCHMARK_BASE_URL || 'http://producer:8080';
 const SCENARIO = __ENV.BENCHMARK_SCENARIO || 'sustained';
+
+setResponseCallback(expectedStatuses({ min: 200, max: 399 }, 404, 409, 503));
 
 // ---------------------------------------------------------------------------
 // Pre-flight health check

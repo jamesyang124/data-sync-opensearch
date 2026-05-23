@@ -17,7 +17,7 @@ import { check } from 'k6';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
 import { thresholds } from '../lib/thresholds.js';
-import { createUser, createVideo, runWorkload } from '../lib/client.js';
+import { createComment, createUser, createVideo, runWorkload } from '../lib/client.js';
 
 const BASE_URL = __ENV.BENCHMARK_BASE_URL || 'http://producer:8080';
 const TARGET_RPS = parseInt(__ENV.BENCHMARK_TARGET_RPS || '500', 10);
@@ -26,10 +26,12 @@ const PREALLOCATED_VUS = parseInt(__ENV.BENCHMARK_PREALLOCATED_VUS || '100', 10)
 const MAX_VUS = parseInt(__ENV.BENCHMARK_MAX_VUS || '300', 10);
 const SETUP_USERS = parseInt(__ENV.BENCHMARK_SETUP_USERS || '200', 10);
 const SETUP_VIDEOS = parseInt(__ENV.BENCHMARK_SETUP_VIDEOS || '100', 10);
+const SETUP_COMMENTS = parseInt(__ENV.BENCHMARK_SETUP_COMMENTS || '100', 10);
 
 // Minimum pool sizes required to proceed (spec edge case — MUST guard)
 const MIN_USERS = 10;
 const MIN_VIDEOS = 5;
+const MIN_COMMENTS = 5;
 
 export const options = {
   scenarios: {
@@ -70,6 +72,16 @@ export function setup() {
     }
   }
 
+  const commentIds = [];
+  if (userIds.length > 0 && videoIds.length > 0) {
+    for (let i = 0; i < SETUP_COMMENTS; i++) {
+      const uid = userIds[Math.floor(Math.random() * userIds.length)];
+      const vid = videoIds[Math.floor(Math.random() * videoIds.length)];
+      const { commentId } = createComment(BASE_URL, vid, uid);
+      if (commentId) commentIds.push(commentId);
+    }
+  }
+
   if (userIds.length < MIN_USERS) {
     throw new Error(
       `Pool seeding failed: seeded ${userIds.length} users (need ≥${MIN_USERS}). ` +
@@ -79,20 +91,26 @@ export function setup() {
   if (videoIds.length < MIN_VIDEOS) {
     throw new Error(
       `Pool seeding failed: seeded ${videoIds.length} videos (need ≥${MIN_VIDEOS}). ` +
-        `Check that POST /api/v1/videos is reachable and user IDs are valid.`
+        `Check that POST /api/v1/videos is reachable.`
+    );
+  }
+  if (commentIds.length < MIN_COMMENTS) {
+    throw new Error(
+      `Pool seeding failed: seeded ${commentIds.length} comments (need ≥${MIN_COMMENTS}). ` +
+        `Check that POST /api/v1/comments is reachable and foreign keys are valid.`
     );
   }
 
-  console.log(`Pool seeded: ${userIds.length} users, ${videoIds.length} videos`);
-  return { userIds, videoIds };
+  console.log(`Pool seeded: ${userIds.length} users, ${videoIds.length} videos, ${commentIds.length} comments`);
+  return { userIds, videoIds, commentIds };
 }
 
 /**
  * Default VU function — executes the shared CRUD workload mix on every iteration.
- * @param {{ userIds: string[], videoIds: string[] }} data - Returned by setup().
+ * @param {{ userIds: string[], videoIds: string[], commentIds: string[] }} data - Returned by setup().
  */
 export default function (data) {
-  const res = runWorkload(BASE_URL, data.userIds, data.videoIds);
+  const res = runWorkload(BASE_URL, data.userIds, data.videoIds, data.commentIds);
   // 2xx is success; 404 on DELETE and 409/503 are handled inside client.js
   if (res !== undefined) {
     check(res, { '2xx or expected': (r) => r.status < 400 || r.status === 404 || r.status === 409 || r.status === 503 });
@@ -104,7 +122,7 @@ export default function (data) {
  */
 export function handleSummary(data) {
   return {
-    'reports/sustained-summary.json': JSON.stringify(data, null, 2),
+    '/reports/sustained-summary.json': JSON.stringify(data, null, 2),
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }

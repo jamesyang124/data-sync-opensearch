@@ -25,14 +25,16 @@ import { check } from 'k6';
 import { Counter } from 'k6/metrics';
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 
-import { createUser, createVideo, runWorkload } from '../lib/client.js';
+import { createComment, createUser, createVideo, runWorkload } from '../lib/client.js';
 
 const BASE_URL = __ENV.BENCHMARK_BASE_URL || 'http://producer:8080';
 const SETUP_USERS = parseInt(__ENV.BENCHMARK_SETUP_USERS || '200', 10);
 const SETUP_VIDEOS = parseInt(__ENV.BENCHMARK_SETUP_VIDEOS || '100', 10);
+const SETUP_COMMENTS = parseInt(__ENV.BENCHMARK_SETUP_COMMENTS || '100', 10);
 
 const MIN_USERS = 10;
 const MIN_VIDEOS = 5;
+const MIN_COMMENTS = 5;
 
 // Dedicated 503 counter for stress scenario visibility
 const backpressure503 = new Counter('backpressure_503_total');
@@ -59,6 +61,11 @@ export const options = {
     'http_req_duration{endpoint:update_user}': [{ threshold: 'p(95)<50', abortOnFail: false }],
     'http_req_duration{endpoint:delete_user}': [{ threshold: 'p(95)<50', abortOnFail: false }],
     'http_req_duration{endpoint:create_video}': [{ threshold: 'p(95)<50', abortOnFail: false }],
+    'http_req_duration{endpoint:update_video}': [{ threshold: 'p(95)<50', abortOnFail: false }],
+    'http_req_duration{endpoint:delete_video}': [{ threshold: 'p(95)<50', abortOnFail: false }],
+    'http_req_duration{endpoint:create_comment}': [{ threshold: 'p(95)<50', abortOnFail: false }],
+    'http_req_duration{endpoint:update_comment}': [{ threshold: 'p(95)<50', abortOnFail: false }],
+    'http_req_duration{endpoint:delete_comment}': [{ threshold: 'p(95)<50', abortOnFail: false }],
   },
 };
 
@@ -82,6 +89,16 @@ export function setup() {
     }
   }
 
+  const commentIds = [];
+  if (userIds.length > 0 && videoIds.length > 0) {
+    for (let i = 0; i < SETUP_COMMENTS; i++) {
+      const uid = userIds[Math.floor(Math.random() * userIds.length)];
+      const vid = videoIds[Math.floor(Math.random() * videoIds.length)];
+      const { commentId } = createComment(BASE_URL, vid, uid);
+      if (commentId) commentIds.push(commentId);
+    }
+  }
+
   if (userIds.length < MIN_USERS) {
     throw new Error(
       `Pool seeding failed: seeded ${userIds.length} users (need ≥${MIN_USERS}). ` +
@@ -91,12 +108,18 @@ export function setup() {
   if (videoIds.length < MIN_VIDEOS) {
     throw new Error(
       `Pool seeding failed: seeded ${videoIds.length} videos (need ≥${MIN_VIDEOS}). ` +
-        `Check that POST /api/v1/videos is reachable and user IDs are valid.`
+        `Check that POST /api/v1/videos is reachable.`
+    );
+  }
+  if (commentIds.length < MIN_COMMENTS) {
+    throw new Error(
+      `Pool seeding failed: seeded ${commentIds.length} comments (need ≥${MIN_COMMENTS}). ` +
+        `Check that POST /api/v1/comments is reachable and foreign keys are valid.`
     );
   }
 
-  console.log(`Pool seeded: ${userIds.length} users, ${videoIds.length} videos`);
-  return { userIds, videoIds };
+  console.log(`Pool seeded: ${userIds.length} users, ${videoIds.length} videos, ${commentIds.length} comments`);
+  return { userIds, videoIds, commentIds };
 }
 
 /**
@@ -104,7 +127,7 @@ export function setup() {
  * Tracks 503 responses in a dedicated counter for saturation visibility.
  */
 export default function (data) {
-  const res = runWorkload(BASE_URL, data.userIds, data.videoIds);
+  const res = runWorkload(BASE_URL, data.userIds, data.videoIds, data.commentIds);
   if (res !== undefined) {
     if (res.status === 503) {
       backpressure503.add(1);
@@ -121,7 +144,7 @@ export default function (data) {
  */
 export function handleSummary(data) {
   return {
-    'reports/stress-summary.json': JSON.stringify(data, null, 2),
+    '/reports/stress-summary.json': JSON.stringify(data, null, 2),
     stdout: textSummary(data, { indent: ' ', enableColors: true }),
   };
 }

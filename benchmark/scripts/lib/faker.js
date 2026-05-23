@@ -1,43 +1,50 @@
 import faker from 'k6/x/faker';
 
+const CATEGORIES = ['education', 'music', 'gaming', 'news', 'sports'];
+const SENTIMENTS = ['positive', 'neutral', 'negative'];
+
+function pick(values) {
+  return values[Math.floor(Math.random() * values.length)];
+}
+
 /**
- * Build a unique User payload.
+ * Build a unique User payload matching postgres/init/01-create-schema.sql.
  * Uniqueness strategy:
- *   - username: timestamp suffix (low collision probability at normal VU counts)
- *   - email:    UUID prefix (guaranteed globally unique)
+ *   - channel_id: UUID prefix (globally unique)
+ *   - channel_name: timestamp suffix (low collision probability at normal VU counts)
  */
 export function buildUser() {
   return {
-    username: `${faker.person.firstName()}_${faker.person.lastName()}_${Date.now()}`,
-    email: `${faker.string.uuid()}@example.com`,
+    channel_id: `channel_${faker.strings.uuid()}`,
+    channel_name: `${faker.person.firstName()} ${faker.person.lastName()} ${Date.now()}`,
   };
 }
 
 /**
- * Build a Video payload referencing an existing user ID from the pool.
- * @param {string} userId - A user_id drawn from the setup() pool.
+ * Build a Video payload.
  */
-export function buildVideo(userId) {
+export function buildVideo() {
   return {
-    user_id: userId,
-    title: faker.lorem.sentence(5),
-    description: faker.lorem.paragraph(1, 3, 10, ' '),
-    duration: faker.number.intRange(60, 7200),
+    video_id: `video_${faker.strings.uuid()}`,
+    title: faker.word.sentence(5),
+    category: pick(CATEGORIES),
   };
 }
 
 /**
- * Build a Comment payload — PLACEHOLDER ONLY.
- * No HTTP requests are issued against this builder until the Comments
- * endpoint ships in the producer app. The builder exists so adding the
- * scenario is a one-file addition.
+ * Build a Comment payload.
  * @param {string} videoId - A video_id from the setup() pool.
- * @param {string} userId  - A user_id from the setup() pool.
+ * @param {string} channelId  - A channel_id from the setup() pool.
  */
-export function buildComment(videoId, userId) {
+export function buildComment(videoId, channelId) {
   return {
+    comment_id: `comment_${faker.strings.uuid()}`,
     video_id: videoId,
-    user_id: userId,
-    comment_text: faker.lorem.sentence(15),
+    channel_id: channelId,
+    comment_text: faker.word.sentence(15),
+    likes: faker.numbers.intRange(0, 5000),
+    replies: faker.numbers.intRange(0, 100),
+    sentiment_label: pick(SENTIMENTS),
+    country_code: 'US',
   };
 }

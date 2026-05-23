@@ -42,13 +42,17 @@ All scenarios exercise the same CRUD workload mix against the producer API:
 
 | Operation | Endpoint | Weight |
 |---|---|---|
-| Create User | `POST /api/v1/users` | 40% |
-| Update User | `PUT /api/v1/users/{id}` | 20% |
-| Delete User | `DELETE /api/v1/users/{id}` | 10% |
-| Create Video | `POST /api/v1/videos` | 30% |
+| Create User | `POST /api/v1/users` | 25% |
+| Update User | `PUT /api/v1/users/{id}` | 10% |
+| Delete User | `DELETE /api/v1/users/{id}` | 5% |
+| Create Video | `POST /api/v1/videos` | 20% |
+| Update Video | `PUT /api/v1/videos/{id}` | 10% |
+| Delete Video | `DELETE /api/v1/videos/{id}` | 5% |
+| Create Comment | `POST /api/v1/comments` | 10% |
+| Update Comment | `PUT /api/v1/comments/{id}` | 10% |
+| Delete Comment | `DELETE /api/v1/comments/{id}` | 5% |
 
 **These weights are fixed in code (`benchmark/scripts/lib/client.js`) and are not configurable via env vars.**
-Comments and Video UPDATE/DELETE are deferred until those producer endpoints ship.
 
 ---
 
@@ -66,6 +70,7 @@ All vars use the `BENCHMARK_` prefix. Set in the root `.env` file or pass inline
 | `BENCHMARK_MAX_VUS` | `300` | Hard VU ceiling |
 | `BENCHMARK_SETUP_USERS` | `200` | Users seeded in setup() before test starts |
 | `BENCHMARK_SETUP_VIDEOS` | `100` | Videos seeded in setup() before test starts |
+| `BENCHMARK_SETUP_COMMENTS` | `100` | Comments seeded in setup() before test starts |
 
 Example — quick smoke check at 20 RPS for 30s:
 
@@ -133,7 +138,7 @@ fi
 
 ## Architecture Notes
 
-- **Fake data uniqueness**: email uses UUID prefix (globally unique); username uses timestamp suffix (low collision probability).
+- **Fake data uniqueness**: generated `channel_id`, `video_id`, and future `comment_id` values use UUID prefixes; channel names include timestamp suffixes.
 - **Referential integrity**: `setup()` pre-seeds 200 users + 100 videos into SharedArray pools. VUs draw random IDs from these pools per iteration.
 - **404 on DELETE**: Expected — deleted users remain in the pool array. 404s are tracked separately and do not count toward the error rate.
 - **409 on CREATE**: Tracked via `http_409_conflict_total` Counter, excluded from `http_req_failed`.

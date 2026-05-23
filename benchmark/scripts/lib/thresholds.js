@@ -18,4 +18,9 @@ export const thresholds = {
   'http_req_duration{endpoint:update_user}': ['p(95)<50'],
   'http_req_duration{endpoint:delete_user}': ['p(95)<50'],
   'http_req_duration{endpoint:create_video}': ['p(95)<50'],
+  'http_req_duration{endpoint:update_video}': ['p(95)<50'],
+  'http_req_duration{endpoint:delete_video}': ['p(95)<50'],
+  'http_req_duration{endpoint:create_comment}': ['p(95)<50'],
+  'http_req_duration{endpoint:update_comment}': ['p(95)<50'],
+  'http_req_duration{endpoint:delete_comment}': ['p(95)<50'],
 };
