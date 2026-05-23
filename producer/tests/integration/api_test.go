@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,28 +22,26 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	dbPool *pgxpool.Pool
-	server *api.Server
-)
-
 func setupTestDB(ctx context.Context, t *testing.T) (*postgres.PostgresContainer, string) {
-	dbName := "testdb"
-	dbUser := "testuser"
-	dbPassword := "testpassword"
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Skipf("Docker/testcontainers unavailable: %v", r)
+		}
+	}()
 
 	postgresContainer, err := postgres.Run(ctx,
 		"postgres:15-alpine",
-		postgres.WithDatabase(dbName),
-		postgres.WithUsername(dbUser),
-		postgres.WithPassword(dbPassword),
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("testuser"),
+		postgres.WithPassword("testpassword"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(5*time.Second)),
+				WithStartupTimeout(10*time.Second)),
 	)
 	if err != nil {
-		t.Fatalf("failed to start postgres container: %s", err)
+		t.Skipf("Docker/testcontainers unavailable: %s", err)
 	}
 
 	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
@@ -52,43 +53,42 @@ func setupTestDB(ctx context.Context, t *testing.T) (*postgres.PostgresContainer
 }
 
 func initSchema(ctx context.Context, pool *pgxpool.Pool, t *testing.T) {
-	queries := []string{
-		`CREATE TABLE users (
-			user_id UUID PRIMARY KEY,
-			username VARCHAR(50) UNIQUE NOT NULL,
-			email VARCHAR(255) UNIQUE NOT NULL,
-			created_at TIMESTAMP NOT NULL,
-			updated_at TIMESTAMP NOT NULL
-		);`,
-		`CREATE TABLE videos (
-			video_id UUID PRIMARY KEY,
-			user_id UUID NOT NULL REFERENCES users(user_id),
-			title VARCHAR(255) NOT NULL,
-			description TEXT,
-			duration INT,
-			created_at TIMESTAMP NOT NULL,
-			updated_at TIMESTAMP NOT NULL
-		);`,
+	t.Helper()
+	schemaPath := filepath.Join("..", "..", "..", "postgres", "init", "01-create-schema.sql")
+	schema, err := os.ReadFile(schemaPath)
+	if err != nil {
+		t.Fatalf("failed to read canonical schema: %v", err)
 	}
 
-	for _, query := range queries {
-		_, err := pool.Exec(ctx, query)
-		if err != nil {
-			t.Fatalf("failed to execute query %s: %v", query, err)
-		}
+	sql := strings.ReplaceAll(string(schema), "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app;", "")
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("failed to initialize schema: %v", err)
 	}
+}
+
+func requestJSON(t *testing.T, client *http.Client, method, url string, payload interface{}) *http.Response {
+	t.Helper()
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatalf("failed to build request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("failed to make request: %v", err)
+	}
+	return resp
 }
 
 func TestAPI(t *testing.T) {
 	ctx := context.Background()
 	container, connStr := setupTestDB(ctx, t)
-	defer container.Terminate(ctx)
+	defer func() { _ = container.Terminate(ctx) }()
 
-	// Parse connStr to Config
-	// This is a bit manual but required since we're bypassing config loading
-	// connStr format: postgres://user:pass@host:port/dbname?sslmode=disable
-	
-	// Create DB connection
 	poolConfig, _ := pgxpool.ParseConfig(connStr)
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
@@ -98,98 +98,101 @@ func TestAPI(t *testing.T) {
 
 	initSchema(ctx, pool, t)
 
-	logger := zap.NewNop()
-	db := &database.Database{Pool: pool}
-	server = api.NewServer(db, logger)
+	server := api.NewServer(&database.Database{Pool: pool}, zap.NewNop())
 	ts := httptest.NewServer(server.Router)
 	defer ts.Close()
 
-	t.Run("CreateUser_HappyPath", func(t *testing.T) {
-		user := models.User{
-			Username: "testuser",
-			Email:    "test@example.com",
-		}
-		body, _ := json.Marshal(user)
-		resp, err := http.Post(ts.URL+"/api/v1/users", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			t.Fatalf("failed to make request: %v", err)
-		}
-		defer resp.Body.Close()
+	client := ts.Client()
 
-		if resp.StatusCode != http.StatusCreated {
-			t.Errorf("expected status 201, got %d", resp.StatusCode)
-		}
+	user := models.User{ChannelID: "channel_test_1", ChannelName: "Test Channel"}
+	resp := requestJSON(t, client, http.MethodPost, ts.URL+"/api/v1/users", user)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create user expected 201, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
 
-		var created models.User
-		json.NewDecoder(resp.Body).Decode(&created)
-		if created.ID.String() == "00000000-0000-0000-0000-000000000000" {
-			t.Error("expected valid ID")
-		}
+	user.ChannelName = "Renamed Channel"
+	resp = requestJSON(t, client, http.MethodPut, ts.URL+"/api/v1/users/"+user.ChannelID, user)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("update user expected 200, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	video := models.Video{VideoID: "video_test_1", Title: "Test Video", Category: "education"}
+	resp = requestJSON(t, client, http.MethodPost, ts.URL+"/api/v1/videos", video)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create video expected 201, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	video.Title = "Updated Video"
+	resp = requestJSON(t, client, http.MethodPut, ts.URL+"/api/v1/videos/"+video.VideoID, video)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("update video expected 200, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	comment := models.Comment{
+		CommentID:      "comment_test_1",
+		VideoID:        video.VideoID,
+		ChannelID:      user.ChannelID,
+		CommentText:    "Great video",
+		Likes:          3,
+		Replies:        1,
+		SentimentLabel: "positive",
+		CountryCode:    "US",
+	}
+	resp = requestJSON(t, client, http.MethodPost, ts.URL+"/api/v1/comments", comment)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("create comment expected 201, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	comment.CommentText = "Updated comment"
+	resp = requestJSON(t, client, http.MethodPut, ts.URL+"/api/v1/comments/"+comment.CommentID, comment)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("update comment expected 200, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	resp = requestJSON(t, client, http.MethodPost, ts.URL+"/api/v1/comments", models.Comment{
+		CommentID:   "comment_orphan",
+		VideoID:     "missing_video",
+		ChannelID:   user.ChannelID,
+		CommentText: "orphan",
 	})
+	if resp.StatusCode != http.StatusConflict {
+		t.Fatalf("orphan comment expected 409, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
 
-	t.Run("CreateUser_Duplicate", func(t *testing.T) {
-		user := models.User{
-			Username: "testuser", // Same username as above
-			Email:    "other@example.com",
-		}
-		body, _ := json.Marshal(user)
-		resp, err := http.Post(ts.URL+"/api/v1/users", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			t.Fatalf("failed to make request: %v", err)
-		}
-		defer resp.Body.Close()
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/comments/"+comment.CommentID, nil)
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("delete comment request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete comment expected 204, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusConflict {
-			t.Errorf("expected status 409, got %d", resp.StatusCode)
-		}
-	})
-	
-	t.Run("CreateVideo_HappyPath", func(t *testing.T) {
-		// First verify user exists (from previous test) or create new one
-		// We'll create a dedicated user for this test to be safe
-		u := models.User{Username: "videouser", Email: "video@test.com"}
-		uBody, _ := json.Marshal(u)
-		uResp, _ := http.Post(ts.URL+"/api/v1/users", "application/json", bytes.NewBuffer(uBody))
-		var createdUser models.User
-		json.NewDecoder(uResp.Body).Decode(&createdUser)
+	req, _ = http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/videos/"+video.VideoID, nil)
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("delete video request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete video expected 204, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
 
-		video := models.Video{
-			UserID: createdUser.ID,
-			Title: "Test Video",
-			Duration: 120,
-		}
-		body, _ := json.Marshal(video)
-		resp, err := http.Post(ts.URL+"/api/v1/videos", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			t.Fatalf("failed to make request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusCreated {
-			t.Errorf("expected status 201, got %d", resp.StatusCode)
-		}
-	})
-
-	t.Run("CreateVideo_InvalidUser", func(t *testing.T) {
-		// Random UUID that doesn't exist
-		video := models.Video{
-			UserID: models.User{}.ID, // Nil UUID or we could generate random
-			Title: "Orphan Video",
-		}
-		// Actually set a random valid-format UUID
-		// But here we rely on the DB to fail FK constraint.
-		// Let's use 00000.. which shouldn't exist unless created.
-		
-		body, _ := json.Marshal(video)
-		resp, err := http.Post(ts.URL+"/api/v1/videos", "application/json", bytes.NewBuffer(body))
-		if err != nil {
-			t.Fatalf("failed to make request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		// Should return 409 Conflict per our handler logic for FK violations
-		if resp.StatusCode != http.StatusConflict {
-			t.Errorf("expected status 409, got %d", resp.StatusCode)
-		}
-	})
+	req, _ = http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/users/"+user.ChannelID, nil)
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("delete user request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete user expected 204, got %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
 }

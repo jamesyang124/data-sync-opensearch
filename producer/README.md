@@ -1,10 +1,10 @@
 # Producer Service
 
-The Producer Service is a test data generation tool for the Data Sync OpenSearch pipeline. It exposes a REST API to create, update, and delete Users and Videos in PostgreSQL, triggering CDC events.
+The Producer Service is a test data generation tool for the Data Sync OpenSearch pipeline. It exposes a REST API to create, update, and delete Users, Videos, and Comments in PostgreSQL, triggering CDC events.
 
 ## Features
 
-- **REST API**: Create/Update/Delete Users, Create Videos.
+- **REST API**: Create/Update/Delete Users, Videos, and Comments.
 - **High Performance**: Built with Go, `chi`, and `pgx`.
 - **Load Testing**: Includes `k6` scripts for validating system throughput.
 
@@ -51,14 +51,21 @@ make run
 ```bash
 curl -X POST http://localhost:8080/api/v1/users \
   -H "Content-Type: application/json" \
-  -d '{"username": "jdoe", "email": "jdoe@example.com"}'
+  -d '{"channel_id": "channel_123", "channel_name": "Example Channel"}'
 ```
 
 ### Create Video
 ```bash
 curl -X POST http://localhost:8080/api/v1/videos \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "UUID...", "title": "My Video", "duration": 120}'
+  -d '{"video_id": "video_123", "title": "My Video", "category": "education"}'
+```
+
+### Create Comment
+```bash
+curl -X POST http://localhost:8080/api/v1/comments \
+  -H "Content-Type: application/json" \
+  -d '{"comment_id": "comment_123", "video_id": "video_123", "channel_id": "channel_123", "comment_text": "Great video", "likes": 3, "replies": 1, "sentiment_label": "positive", "country_code": "US"}'
 ```
 
 ## Load Testing (k6)

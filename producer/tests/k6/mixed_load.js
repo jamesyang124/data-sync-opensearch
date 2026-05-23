@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { randomString, randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
+import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 
 export const options = {
   stages: [
@@ -18,12 +18,11 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 export default function () {
   // 1. Create User
-  const username = `user_${randomString(8)}`;
-  const email = `${username}@example.com`;
+  const channelID = `channel_${randomString(8)}`;
   
   const userPayload = JSON.stringify({
-    username: username,
-    email: email,
+    channel_id: channelID,
+    channel_name: `Channel ${randomString(8)}`,
   });
 
   const params = {
@@ -39,14 +38,10 @@ export default function () {
   });
 
   if (userSuccess) {
-    const userId = userRes.json('user_id');
-
-    // 2. Create Video for that User
     const videoPayload = JSON.stringify({
-      user_id: userId,
+      video_id: `video_${randomString(8)}`,
       title: `Video ${randomString(5)}`,
-      description: `Description for video ${randomString(10)}`,
-      duration: randomIntBetween(60, 3600),
+      category: 'benchmark',
     });
 
     const videoRes = http.post(`${BASE_URL}/api/v1/videos`, videoPayload, params);

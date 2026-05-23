@@ -17,12 +17,11 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 export default function () {
-  const username = `user_${randomString(8)}`;
-  const email = `${username}@example.com`;
+  const channelID = `channel_${randomString(8)}`;
 
   const payload = JSON.stringify({
-    username: username,
-    email: email,
+    channel_id: channelID,
+    channel_name: `Channel ${randomString(8)}`,
   });
 
   const params = {
@@ -35,7 +34,7 @@ export default function () {
 
   check(res, {
     'status is 201': (r) => r.status === 201,
-    'has user_id': (r) => r.json('user_id') !== '',
+    'has channel_id': (r) => r.json('channel_id') !== '',
   });
 
   sleep(0.1); // Small think time

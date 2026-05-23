@@ -23,7 +23,7 @@ func NewServer(db *database.Database, logger *zap.Logger) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	
+
 	// Custom logger middleware wrapper could be added here to use Zap
 
 	s := &Server{
@@ -33,23 +33,31 @@ func NewServer(db *database.Database, logger *zap.Logger) *Server {
 	}
 
 	s.routes()
-	
+
 	return s
 }
 
 func (s *Server) routes() {
 	s.Router.Get("/health", s.HealthCheck)
 	s.Router.Get("/metrics", s.Metrics)
-	
+
 	s.Router.Route("/api/v1", func(r chi.Router) {
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", s.CreateUser)
 			r.Put("/{id}", s.UpdateUser)
 			r.Delete("/{id}", s.DeleteUser)
 		})
-		
+
 		r.Route("/videos", func(r chi.Router) {
 			r.Post("/", s.CreateVideo)
+			r.Put("/{id}", s.UpdateVideo)
+			r.Delete("/{id}", s.DeleteVideo)
+		})
+
+		r.Route("/comments", func(r chi.Router) {
+			r.Post("/", s.CreateComment)
+			r.Put("/{id}", s.UpdateComment)
+			r.Delete("/{id}", s.DeleteComment)
 		})
 	})
 }

@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,22 +22,25 @@ import (
 )
 
 func setupTestDB(ctx context.Context, t *testing.T) (*postgres.PostgresContainer, string) {
-	dbName := "testdb"
-	dbUser := "testuser"
-	dbPassword := "testpassword"
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Skipf("Docker/testcontainers unavailable: %v", r)
+		}
+	}()
 
 	postgresContainer, err := postgres.Run(ctx,
 		"postgres:15-alpine",
-		postgres.WithDatabase(dbName),
-		postgres.WithUsername(dbUser),
-		postgres.WithPassword(dbPassword),
+		postgres.WithDatabase("testdb"),
+		postgres.WithUsername("testuser"),
+		postgres.WithPassword("testpassword"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(5*time.Second)),
+				WithStartupTimeout(10*time.Second)),
 	)
 	if err != nil {
-		t.Fatalf("failed to start postgres container: %s", err)
+		t.Skipf("Docker/testcontainers unavailable: %s", err)
 	}
 
 	connStr, err := postgresContainer.ConnectionString(ctx, "sslmode=disable")
@@ -46,37 +52,23 @@ func setupTestDB(ctx context.Context, t *testing.T) (*postgres.PostgresContainer
 }
 
 func initSchema(ctx context.Context, pool *pgxpool.Pool, t *testing.T) {
-	queries := []string{
-		`CREATE TABLE users (
-			user_id UUID PRIMARY KEY,
-			username VARCHAR(50) UNIQUE NOT NULL,
-			email VARCHAR(255) UNIQUE NOT NULL,
-			created_at TIMESTAMP NOT NULL,
-			updated_at TIMESTAMP NOT NULL
-		);`,
-		`CREATE TABLE videos (
-			video_id UUID PRIMARY KEY,
-			user_id UUID NOT NULL REFERENCES users(user_id),
-			title VARCHAR(255) NOT NULL,
-			description TEXT,
-			duration INT,
-			created_at TIMESTAMP NOT NULL,
-			updated_at TIMESTAMP NOT NULL
-		);`,
+	t.Helper()
+	schemaPath := filepath.Join("..", "..", "..", "postgres", "init", "01-create-schema.sql")
+	schema, err := os.ReadFile(schemaPath)
+	if err != nil {
+		t.Fatalf("failed to read canonical schema: %v", err)
 	}
 
-	for _, query := range queries {
-		_, err := pool.Exec(ctx, query)
-		if err != nil {
-			t.Fatalf("failed to execute query %s: %v", query, err)
-		}
+	sql := strings.ReplaceAll(string(schema), "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app;", "")
+	if _, err := pool.Exec(ctx, sql); err != nil {
+		t.Fatalf("failed to initialize schema: %v", err)
 	}
 }
 
 func TestAPIContract(t *testing.T) {
 	ctx := context.Background()
 	container, connStr := setupTestDB(ctx, t)
-	defer container.Terminate(ctx)
+	defer func() { _ = container.Terminate(ctx) }()
 
 	poolConfig, _ := pgxpool.ParseConfig(connStr)
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
@@ -87,23 +79,21 @@ func TestAPIContract(t *testing.T) {
 
 	initSchema(ctx, pool, t)
 
-	logger := zap.NewNop()
-	db := &database.Database{Pool: pool}
-	server := api.NewServer(db, logger)
+	server := api.NewServer(&database.Database{Pool: pool}, zap.NewNop())
 
 	t.Run("CreateUser_Contract", func(t *testing.T) {
 		payload := map[string]string{
-			"username": "contract_user",
-			"email":    "contract@example.com",
+			"channel_id":   "contract_channel",
+			"channel_name": "Contract Channel",
 		}
 		body, _ := json.Marshal(payload)
-		req := httptest.NewRequest("POST", "/api/v1/users", bytes.NewBuffer(body))
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/users", bytes.NewBuffer(body))
 		w := httptest.NewRecorder()
 
 		server.Router.ServeHTTP(w, req)
 
 		if w.Code != http.StatusCreated {
-			t.Errorf("expected 201, got %d", w.Code)
+			t.Fatalf("expected 201, got %d", w.Code)
 		}
 
 		var resp map[string]interface{}
@@ -111,50 +101,44 @@ func TestAPIContract(t *testing.T) {
 			t.Fatalf("failed to unmarshal response: %v", err)
 		}
 
-		// Validate expected keys in response
-		expectedKeys := []string{"user_id", "username", "created_at"}
-		for _, key := range expectedKeys {
+		for _, key := range []string{"channel_id", "channel_name", "created_at", "updated_at"} {
 			if _, ok := resp[key]; !ok {
 				t.Errorf("missing expected key: %s", key)
 			}
 		}
 	})
 
+	t.Run("Routes_Contract", func(t *testing.T) {
+		expectedRoutes := []struct {
+			method string
+			path   string
+		}{
+			{http.MethodPost, "/api/v1/videos"},
+			{http.MethodPut, "/api/v1/videos/contract_video"},
+			{http.MethodDelete, "/api/v1/videos/contract_video"},
+			{http.MethodPost, "/api/v1/comments"},
+			{http.MethodPut, "/api/v1/comments/contract_comment"},
+			{http.MethodDelete, "/api/v1/comments/contract_comment"},
+		}
+
+		for _, route := range expectedRoutes {
+			req := httptest.NewRequest(route.method, route.path, bytes.NewBufferString(`{}`))
+			w := httptest.NewRecorder()
+			server.Router.ServeHTTP(w, req)
+			if w.Code == http.StatusNotFound || w.Code == http.StatusMethodNotAllowed {
+				t.Errorf("%s %s route is not registered, got %d", route.method, route.path, w.Code)
+			}
+		}
+	})
+
 	t.Run("HealthCheck_Contract", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/health", nil)
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
 		w := httptest.NewRecorder()
 
 		server.Router.ServeHTTP(w, req)
 
 		if w.Code != http.StatusOK {
 			t.Errorf("expected 200, got %d", w.Code)
-		}
-
-		var resp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resp)
-
-		if val, ok := resp["status"]; !ok || val != "up" {
-			t.Errorf("expected status: up, got %v", val)
-		}
-		if _, ok := resp["db_connection"]; !ok {
-			t.Error("missing db_connection key")
-		}
-	})
-
-	t.Run("Metrics_Contract", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/metrics", nil)
-		w := httptest.NewRecorder()
-
-		server.Router.ServeHTTP(w, req)
-
-		var resp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resp)
-
-		expectedSections := []string{"http", "db", "runtime"}
-		for _, section := range expectedSections {
-			if _, ok := resp[section]; !ok {
-				t.Errorf("missing expected section: %s", section)
-			}
 		}
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/murcurial/data-sync-opensearch/producer/pkg/models"
 	"go.uber.org/zap"
 )
@@ -35,18 +34,13 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 // UpdateUser handles PUT /users/{id}
 func (s *Server) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		s.respondWithError(w, http.StatusBadRequest, "Invalid user ID")
-		return
-	}
 
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		s.respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	user.ID = id
+	user.ChannelID = idStr
 
 	if err := s.db.UpdateUser(r.Context(), &user); err != nil {
 		if strings.Contains(err.Error(), "user not found") {
@@ -54,7 +48,7 @@ func (s *Server) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if strings.Contains(err.Error(), "duplicate key") {
-			s.respondWithError(w, http.StatusConflict, "Username or email conflict")
+			s.respondWithError(w, http.StatusConflict, "Channel ID conflict")
 			return
 		}
 		s.logger.Error("Failed to update user", zap.Error(err))
@@ -68,13 +62,8 @@ func (s *Server) UpdateUser(w http.ResponseWriter, r *http.Request) {
 // DeleteUser handles DELETE /users/{id}
 func (s *Server) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		s.respondWithError(w, http.StatusBadRequest, "Invalid user ID")
-		return
-	}
 
-	if err := s.db.DeleteUser(r.Context(), id); err != nil {
+	if err := s.db.DeleteUser(r.Context(), idStr); err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			s.respondWithError(w, http.StatusNotFound, "User not found")
 			return
