@@ -16,18 +16,31 @@ type MessageHandler struct {
 	transformer *transform.Transformer
 	indexer     Indexer
 	metrics     MetricsCollector
+	dlqProducer DLQPublisher
 }
 
 // Indexer interface for OpenSearch indexing operations
 type Indexer interface {
 	Index(index, docID string, document interface{}) error
-	Delete(index, docID string) error
+	Delete(index, docID string, sourceTsMs int64) error
 }
 
 // MetricsCollector interface for tracking metrics
 type MetricsCollector interface {
 	IncrementProcessed()
 	IncrementErrors()
+}
+
+type DLQPublisher interface {
+	PublishToDLQ(
+		originalTopic string,
+		originalPartition int32,
+		originalOffset int64,
+		originalKey []byte,
+		originalValue []byte,
+		errorMsg string,
+		attemptCount int,
+	) error
 }
 
 // NewMessageHandler creates a new message handler
@@ -38,6 +51,11 @@ func NewMessageHandler(logger *zap.Logger, transformer *transform.Transformer, i
 		indexer:     indexer,
 		metrics:     metrics,
 	}
+}
+
+// SetDLQProducer enables DLQ publication for messages that fail after retries.
+func (h *MessageHandler) SetDLQProducer(dlqProducer DLQPublisher) {
+	h.dlqProducer = dlqProducer
 }
 
 // Setup is called at the beginning of a new session
@@ -66,7 +84,9 @@ func (h *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 			if h.metrics != nil {
 				h.metrics.IncrementErrors()
 			}
-			// Continue processing other messages
+			if h.handleProcessingFailure(message, err) {
+				session.MarkMessage(message, "dlq")
+			}
 			continue
 		}
 
@@ -80,6 +100,34 @@ func (h *MessageHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 	}
 
 	return nil
+}
+
+// handleProcessingFailure sends a failed message to DLQ when configured.
+// It returns true when the original message should be marked to avoid endless poison-message replay.
+func (h *MessageHandler) handleProcessingFailure(message *sarama.ConsumerMessage, processingErr error) bool {
+	if h.dlqProducer == nil {
+		return false
+	}
+
+	if err := h.dlqProducer.PublishToDLQ(
+		message.Topic,
+		message.Partition,
+		message.Offset,
+		message.Key,
+		message.Value,
+		processingErr.Error(),
+		1,
+	); err != nil {
+		h.logger.Error("Failed to publish message to DLQ",
+			zap.String("topic", message.Topic),
+			zap.Int32("partition", message.Partition),
+			zap.Int64("offset", message.Offset),
+			zap.Error(err),
+		)
+		return false
+	}
+
+	return true
 }
 
 // processMessage handles a single Kafka message
@@ -115,7 +163,7 @@ func (h *MessageHandler) processMessage(message *sarama.ConsumerMessage) error {
 		)
 
 	case "d": // delete
-		if err := h.indexer.Delete(index, docID); err != nil {
+		if err := h.indexer.Delete(index, docID, event.Payload.Source.TsMs); err != nil {
 			return fmt.Errorf("failed to delete document: %w", err)
 		}
 		logger.Info("Document deleted",

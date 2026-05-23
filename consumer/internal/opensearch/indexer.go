@@ -36,9 +36,21 @@ func (i *Indexer) Index(index, docID string, document interface{}) error {
 		return fmt.Errorf("failed to convert document to map: %w", err)
 	}
 
+	incomingSourceTs := int64(0)
+	if v, ok := docMap["source_ts_ms"]; ok {
+		switch ts := v.(type) {
+		case float64:
+			incomingSourceTs = int64(ts)
+		case int64:
+			incomingSourceTs = ts
+		case int:
+			incomingSourceTs = int64(ts)
+		}
+	}
+
 	updatedAt, ok := docMap["updated_at"].(string)
 	if !ok || updatedAt == "" {
-		// If no updated_at field, proceed without optimistic locking
+		// If no updated_at field, proceed without optimistic locking.
 		return i.indexDocument(index, docID, docMap)
 	}
 
@@ -50,18 +62,14 @@ func (i *Indexer) Index(index, docID string, document interface{}) error {
 
 	// If document exists, check if update is stale
 	if existingDoc != nil {
-		existingUpdatedAt, ok := existingDoc["updated_at"].(string)
-		if ok && existingUpdatedAt != "" {
-			// Compare timestamps
-			if isStaleUpdate(updatedAt, existingUpdatedAt) {
-				i.logger.Info("Ignoring stale update",
-					zap.String("index", index),
-					zap.String("doc_id", docID),
-					zap.String("incoming_updated_at", updatedAt),
-					zap.String("existing_updated_at", existingUpdatedAt),
-				)
-				return nil // Silently ignore stale updates
-			}
+		if isStaleDocument(docMap, existingDoc) {
+			i.logger.Info("Ignoring stale update",
+				zap.String("index", index),
+				zap.String("doc_id", docID),
+				zap.Int64("incoming_source_ts_ms", incomingSourceTs),
+				zap.String("incoming_updated_at", updatedAt),
+			)
+			return nil
 		}
 	}
 
@@ -97,8 +105,26 @@ func (i *Indexer) indexDocument(index, docID string, document map[string]interfa
 	return nil
 }
 
-// Delete removes a document from the index
-func (i *Indexer) Delete(index, docID string) error {
+// Delete removes a document from the index when the delete event is not stale.
+func (i *Indexer) Delete(index, docID string, sourceTsMs int64) error {
+	existingDoc, err := i.getDocument(index, docID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return fmt.Errorf("failed to get existing document before delete: %w", err)
+	}
+
+	if isStaleDelete(sourceTsMs, existingDoc) {
+		i.logger.Info("Ignoring stale delete",
+			zap.String("index", index),
+			zap.String("doc_id", docID),
+			zap.Int64("delete_source_ts_ms", sourceTsMs),
+			zap.Int64("existing_source_ts_ms", sourceTimestamp(existingDoc)),
+		)
+		return nil
+	}
+
 	req := opensearchapi.DeleteRequest{
 		Index:      index,
 		DocumentID: docID,
@@ -163,6 +189,41 @@ func isStaleUpdate(incomingUpdatedAt, existingUpdatedAt string) bool {
 
 	// Update is stale if incoming timestamp is older than existing
 	return incomingTime.Before(existingTime)
+}
+
+func isStaleDocument(incomingDoc, existingDoc map[string]interface{}) bool {
+	incomingSourceTs := sourceTimestamp(incomingDoc)
+	existingSourceTs := sourceTimestamp(existingDoc)
+	if incomingSourceTs > 0 && existingSourceTs > 0 {
+		return incomingSourceTs < existingSourceTs
+	}
+
+	incomingUpdatedAt, incomingOK := incomingDoc["updated_at"].(string)
+	existingUpdatedAt, existingOK := existingDoc["updated_at"].(string)
+	if incomingOK && existingOK && incomingUpdatedAt != "" && existingUpdatedAt != "" {
+		return isStaleUpdate(incomingUpdatedAt, existingUpdatedAt)
+	}
+
+	return false
+}
+
+func isStaleDelete(deleteSourceTs int64, existingDoc map[string]interface{}) bool {
+	existingSourceTs := sourceTimestamp(existingDoc)
+	return deleteSourceTs > 0 && existingSourceTs > 0 && deleteSourceTs < existingSourceTs
+}
+
+func sourceTimestamp(doc map[string]interface{}) int64 {
+	if v, ok := doc["source_ts_ms"]; ok {
+		switch ts := v.(type) {
+		case float64:
+			return int64(ts)
+		case int64:
+			return ts
+		case int:
+			return int64(ts)
+		}
+	}
+	return 0
 }
 
 // toMap converts any type to map[string]interface{}

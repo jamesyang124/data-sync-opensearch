@@ -17,11 +17,7 @@ type Consumer struct {
 
 // NewConsumer creates a new Kafka consumer
 func NewConsumer(brokers []string, group string, topics []string, handler sarama.ConsumerGroupHandler, logger *zap.Logger) (*Consumer, error) {
-	config := sarama.NewConfig()
-	config.Version = sarama.V3_0_0_0
-	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
-	config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	config.Consumer.Return.Errors = true
+	config := newConsumerGroupConfig()
 
 	client, err := sarama.NewConsumerGroup(brokers, group, config)
 	if err != nil {
@@ -34,6 +30,17 @@ func NewConsumer(brokers []string, group string, topics []string, handler sarama
 		handler: handler,
 		logger:  logger,
 	}, nil
+}
+
+func newConsumerGroupConfig() *sarama.Config {
+	config := sarama.NewConfig()
+	config.Version = sarama.V3_0_0_0
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
+	config.Consumer.Offsets.AutoCommit.Enable = true
+	config.Consumer.Return.Errors = true
+
+	return config
 }
 
 // Start begins consuming messages

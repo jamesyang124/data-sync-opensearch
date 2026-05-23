@@ -11,19 +11,20 @@ import (
 
 // DLQProducer handles publishing failed events to dead letter queue
 type DLQProducer struct {
-	producer sarama.SyncProducer
-	logger   *zap.Logger
+	producer      sarama.SyncProducer
+	consumerGroup string
+	logger        *zap.Logger
 }
 
 // DLQMessage represents a message in the dead letter queue
 type DLQMessage struct {
-	OriginalTopic     string                 `json:"original_topic"`
-	OriginalPartition int32                  `json:"original_partition"`
-	OriginalOffset    int64                  `json:"original_offset"`
-	OriginalKey       string                 `json:"original_key,omitempty"`
-	OriginalValue     json.RawMessage        `json:"original_value"`
-	ErrorContext      *ErrorContext          `json:"error_context"`
-	Timestamp         time.Time              `json:"timestamp"`
+	OriginalTopic     string          `json:"original_topic"`
+	OriginalPartition int32           `json:"original_partition"`
+	OriginalOffset    int64           `json:"original_offset"`
+	OriginalKey       string          `json:"original_key,omitempty"`
+	OriginalValue     json.RawMessage `json:"original_value"`
+	ErrorContext      *ErrorContext   `json:"error_context"`
+	Timestamp         time.Time       `json:"timestamp"`
 }
 
 // ErrorContext contains error details for debugging
@@ -36,7 +37,7 @@ type ErrorContext struct {
 }
 
 // NewDLQProducer creates a new dead letter queue producer
-func NewDLQProducer(brokers []string, logger *zap.Logger) (*DLQProducer, error) {
+func NewDLQProducer(brokers []string, consumerGroup string, logger *zap.Logger) (*DLQProducer, error) {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Retry.Max = 3
@@ -48,9 +49,38 @@ func NewDLQProducer(brokers []string, logger *zap.Logger) (*DLQProducer, error) 
 	}
 
 	return &DLQProducer{
-		producer: producer,
-		logger:   logger,
+		producer:      producer,
+		consumerGroup: consumerGroup,
+		logger:        logger,
 	}, nil
+}
+
+func (d *DLQProducer) buildDLQMessage(
+	originalTopic string,
+	originalPartition int32,
+	originalOffset int64,
+	originalKey []byte,
+	originalValue []byte,
+	errorMsg string,
+	attemptCount int,
+) DLQMessage {
+	return DLQMessage{
+		OriginalTopic:     originalTopic,
+		OriginalPartition: originalPartition,
+		OriginalOffset:    originalOffset,
+		OriginalKey:       string(originalKey),
+		OriginalValue:     originalValue,
+		ErrorContext: &ErrorContext{
+			ErrorMessage: errorMsg,
+			ErrorType:    "processing_error",
+			AttemptCount: attemptCount,
+			LastAttempt:  time.Now(),
+			Metadata: map[string]string{
+				"consumer_group": d.consumerGroup,
+			},
+		},
+		Timestamp: time.Now(),
+	}
 }
 
 // PublishToDLQ publishes a failed message to the dead letter queue
@@ -64,24 +94,7 @@ func (d *DLQProducer) PublishToDLQ(
 	attemptCount int,
 ) error {
 	dlqTopic := fmt.Sprintf("%s.dlq", originalTopic)
-
-	dlqMessage := DLQMessage{
-		OriginalTopic:     originalTopic,
-		OriginalPartition: originalPartition,
-		OriginalOffset:    originalOffset,
-		OriginalKey:       string(originalKey),
-		OriginalValue:     originalValue,
-		ErrorContext: &ErrorContext{
-			ErrorMessage: errorMsg,
-			ErrorType:    "processing_error",
-			AttemptCount: attemptCount,
-			LastAttempt:  time.Now(),
-			Metadata: map[string]string{
-				"consumer_group": "cdc-consumer-group",
-			},
-		},
-		Timestamp: time.Now(),
-	}
+	dlqMessage := d.buildDLQMessage(originalTopic, originalPartition, originalOffset, originalKey, originalValue, errorMsg, attemptCount)
 
 	messageBytes, err := json.Marshal(dlqMessage)
 	if err != nil {

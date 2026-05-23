@@ -68,6 +68,14 @@ func main() {
 	// Initialize base Kafka message handler
 	baseHandler := kafka.NewMessageHandler(logger.Log, transformer, indexer, metrics)
 
+	// Initialize DLQ producer before consuming. Handler marks poison messages only after DLQ publish succeeds.
+	dlqProducer, err := kafka.NewDLQProducer(cfg.KafkaBrokers, cfg.ConsumerGroup, logger.Log)
+	if err != nil {
+		logger.Log.Fatal("Failed to initialize DLQ producer", zap.Error(err))
+	}
+	defer dlqProducer.Close()
+	baseHandler.SetDLQProducer(dlqProducer)
+
 	// Initialize worker pool with backpressure control
 	workerPool := kafka.NewWorkerPool(
 		cfg.WorkerCount,

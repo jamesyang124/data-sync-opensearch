@@ -16,15 +16,15 @@ type WorkItem struct {
 
 // WorkerPool manages a pool of workers with backpressure control
 type WorkerPool struct {
-	workerCount      int
-	workQueue        chan *WorkItem
-	handler          *MessageHandler
-	logger           *zap.Logger
-	metrics          BackpressureMetrics
-	pauseThreshold   float64
-	resumeThreshold  float64
-	ctx              context.Context
-	cancel           context.CancelFunc
+	workerCount     int
+	workQueue       chan *WorkItem
+	handler         *MessageHandler
+	logger          *zap.Logger
+	metrics         BackpressureMetrics
+	pauseThreshold  float64
+	resumeThreshold float64
+	ctx             context.Context
+	cancel          context.CancelFunc
 }
 
 // BackpressureMetrics interface for tracking backpressure state
@@ -138,8 +138,17 @@ func (wp *WorkerPool) worker(id int) {
 					zap.Int64("offset", item.Message.Offset),
 					zap.Error(err),
 				)
+				if wp.handler.metrics != nil {
+					wp.handler.metrics.IncrementErrors()
+				}
+				if wp.handler.handleProcessingFailure(item.Message, err) {
+					item.Session.MarkMessage(item.Message, "dlq")
+				}
 			} else {
 				// Mark message as processed on success
+				if wp.handler.metrics != nil {
+					wp.handler.metrics.IncrementProcessed()
+				}
 				item.Session.MarkMessage(item.Message, "")
 			}
 
