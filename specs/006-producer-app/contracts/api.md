@@ -1,91 +1,109 @@
 # API Contract: Producer Service
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Base URL**: `http://localhost:8080/api/v1`
+**Schema Source**: `postgres/init/01-create-schema.sql`
 
-## Endpoints
+## Users / Channels
 
-### 1. Create User
-Creates a single user record.
+### Create User
 
 - **POST** `/users`
 - **Request Body**:
   ```json
   {
-    "username": "john_doe",
-    "email": "john@example.com"
+    "channel_id": "channel_123",
+    "channel_name": "Example Channel"
   }
   ```
-- **Response (201 Created)**:
-  ```json
-  {
-    "user_id": "uuid-string",
-    "username": "john_doe",
-    "created_at": "timestamp"
-  }
-  ```
+- **Response**: `201 Created` with `channel_id`, `channel_name`, `created_at`, `updated_at`.
 
-### 2. Update User
-Updates an existing user.
+### Update User
 
-- **PUT** `/users/{user_id}`
+- **PUT** `/users/{channel_id}`
 - **Request Body**:
   ```json
   {
-    "username": "new_username",
-    "email": "new@example.com"
+    "channel_name": "Renamed Channel"
   }
   ```
-- **Response (200 OK)**:
-  ```json
-  {
-    "user_id": "uuid-string",
-    "username": "new_username",
-    "updated_at": "timestamp"
-  }
-  ```
+- **Response**: `200 OK`
 
-### 3. Delete User
-Deletes a user.
+### Delete User
 
-- **DELETE** `/users/{user_id}`
-- **Response (204 No Content)**
+- **DELETE** `/users/{channel_id}`
+- **Response**: `204 No Content`
 
-### 4. Create Video
-Creates a video record.
+## Videos
+
+### Create Video
 
 - **POST** `/videos`
 - **Request Body**:
   ```json
   {
-    "user_id": "uuid-string",
+    "video_id": "video_123",
     "title": "My Video",
-    "description": "Video description",
-    "duration": 120
+    "category": "education"
   }
   ```
-- **Response (201 Created)**:
+- **Response**: `201 Created`
+
+### Update Video
+
+- **PUT** `/videos/{video_id}`
+- **Request Body**:
   ```json
   {
-    "video_id": "uuid-string",
-    "title": "My Video"
+    "title": "Updated Video",
+    "category": "news"
   }
   ```
+- **Response**: `200 OK`
 
-### 3. Health Check
-Standard health check.
+### Delete Video
 
-- **GET** `/health`
-- **Response (200 OK)**:
+- **DELETE** `/videos/{video_id}`
+- **Response**: `204 No Content`
+
+## Comments
+
+### Create Comment
+
+- **POST** `/comments`
+- **Request Body**:
   ```json
   {
-    "status": "up",
-    "db_connection": true
+    "comment_id": "comment_123",
+    "video_id": "video_123",
+    "channel_id": "channel_123",
+    "comment_text": "Great video",
+    "likes": 3,
+    "replies": 1,
+    "sentiment_label": "positive",
+    "country_code": "US"
   }
   ```
+- **Response**: `201 Created`
 
-### 4. Metrics
-Application metrics.
+### Update Comment
 
-- **GET** `/metrics`
-- **Response**: JSON object containing request counts, DB pool stats, and uptime.
+- **PUT** `/comments/{comment_id}`
+- **Response**: `200 OK`
+
+### Delete Comment
+
+- **DELETE** `/comments/{comment_id}`
+- **Response**: `204 No Content`
+
+## Health And Metrics
+
+- **GET** `/health`: returns status and database connectivity.
+- **GET** `/metrics`: returns JSON runtime and database pool metrics.
+
+## Error Mapping
+
+- Invalid JSON: `400 Bad Request`
+- Duplicate primary key: `409 Conflict`
+- Missing foreign key for comments: `409 Conflict`
+- Missing entity on update/delete: `404 Not Found`

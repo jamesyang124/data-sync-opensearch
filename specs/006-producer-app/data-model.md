@@ -1,86 +1,48 @@
 # Data Model: Test Data Service
 
-**Status**: Phase 1 Design
-**Source**: Postgres Schema (Feature 001)
+**Status**: Updated to canonical PostgreSQL schema
+**Source**: `postgres/init/01-create-schema.sql`
 
-## Entities
+The producer API writes directly to the normalized dataset tables so Debezium emits CDC events with the same fields consumed by the rest of the pipeline.
 
-The application exposes the following entities via the API.
-
-### 1. User
-Represents a platform user.
+## User / Channel
 
 | Field | Type | Constraint |
-|-------|------|------------|
-| `user_id` | UUID | PK |
-| `username` | VARCHAR(50) | Unique |
-| `email` | VARCHAR(255) | Unique |
-| `created_at` | TIMESTAMP | |
-| `updated_at` | TIMESTAMP | |
+|---|---|---|
+| `channel_id` | VARCHAR(255) | Primary key |
+| `channel_name` | VARCHAR(255) | Required |
+| `created_at` | TIMESTAMP | Default current timestamp |
+| `updated_at` | TIMESTAMP | Updated by trigger |
 
-### 2. Video
-Represents a video uploaded by a user.
+## Video
 
 | Field | Type | Constraint |
-|-------|------|------------|
-| `video_id` | UUID | PK |
-| `user_id` | UUID | FK -> Users |
-| `title` | VARCHAR(255) | |
-| `description` | TEXT | |
-| `duration` | INT | |
-| `created_at` | TIMESTAMP | |
-| `updated_at` | TIMESTAMP | |
+|---|---|---|
+| `video_id` | VARCHAR(255) | Primary key |
+| `title` | TEXT | Required |
+| `category` | VARCHAR(100) | Optional |
+| `created_at` | TIMESTAMP | Default current timestamp |
+| `updated_at` | TIMESTAMP | Updated by trigger |
 
-### 3. Comment
-Represents a comment on a video.
+## Comment
 
 | Field | Type | Constraint |
-|-------|------|------------|
-| `comment_id` | UUID | PK |
-| `video_id` | UUID | FK -> Videos |
-| `user_id` | UUID | FK -> Users |
-| `comment_text` | TEXT | |
-| `created_at` | TIMESTAMP | |
-| `updated_at` | TIMESTAMP | |
+|---|---|---|
+| `comment_id` | VARCHAR(255) | Primary key |
+| `video_id` | VARCHAR(255) | FK -> `videos(video_id)` |
+| `channel_id` | VARCHAR(255) | FK -> `users(channel_id)` |
+| `comment_text` | TEXT | Required |
+| `likes` | INTEGER | Default 0 |
+| `replies` | INTEGER | Default 0 |
+| `published_at` | TIMESTAMP | Optional |
+| `sentiment_label` | VARCHAR(50) | Optional |
+| `country_code` | VARCHAR(10) | Optional |
+| `created_at` | TIMESTAMP | Default current timestamp |
+| `updated_at` | TIMESTAMP | Updated by trigger |
 
-## Go Structs (Draft)
+## API Behavior
 
-```go
-package models
-
-import (
-	"time"
-	"github.com/google/uuid"
-)
-
-type User struct {
-	ID        uuid.UUID `db:"user_id" json:"user_id"`
-	Username  string    `db:"username" json:"username"`
-	Email     string    `db:"email" json:"email"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-}
-
-type Video struct {
-	ID          uuid.UUID `db:"video_id" json:"video_id"`
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	Title       string    `db:"title" json:"title"`
-	Description string    `db:"description" json:"description"`
-	Duration    int       `db:"duration" json:"duration"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
-}
-
-type Comment struct {
-	ID          uuid.UUID `db:"comment_id" json:"comment_id"`
-	VideoID     uuid.UUID `db:"video_id" json:"video_id"`
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	Text        string    `db:"comment_text" json:"comment_text"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
-}
-```
-
-## Relationships & Integrity
-
-- **Foreign Keys**: The API will return `409 Conflict` or `400 Bad Request` if a foreign key constraint is violated (e.g., trying to create a Video for a non-existent User).
+- Create requests may supply IDs; if omitted, the producer generates prefixed string IDs (`channel_*`, `video_*`, `comment_*`).
+- Update requests take the entity ID from the URL path and update mutable fields only.
+- Delete requests remove the row and rely on PostgreSQL foreign key cascade for dependent comments.
+- Foreign key violations return `409 Conflict`; missing rows on update/delete return `404 Not Found`.

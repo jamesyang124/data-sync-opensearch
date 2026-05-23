@@ -39,7 +39,7 @@ As a QA engineer, I need the API service to handle high concurrency (e.g., 500+ 
 ### Edge Cases
 
 - **Invalid JSON**: Return 400 Bad Request.
-- **Constraint Violations**: Return 409 Conflict (e.g., duplicate email).
+- **Constraint Violations**: Return 409 Conflict (e.g., duplicate primary key or missing foreign key).
 - **DB Down**: Return 500/503.
 - **Missing Entity**: Return 404 Not Found for Update/Delete.
 
@@ -89,4 +89,3 @@ As a QA engineer, I need the API service to handle high concurrency (e.g., 500+ 
 ### Session 2026-02-20
 
 - Q: Does the REST API require any form of access control? → A: No auth — internal Docker network trust only.
-
