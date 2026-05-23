@@ -19,33 +19,39 @@
       "video_id": {
         "type": "keyword"
       },
-      "user_id": {
+      "channel_id": {
         "type": "keyword"
       },
       "comment_text": {
         "type": "text",
         "analyzer": "standard"
       },
-      "sentiment": {
-        "type": "keyword"
-      },
-      "like_count": {
+      "likes": {
         "type": "integer"
       },
-      "posted_at": {
+      "replies": {
+        "type": "integer"
+      },
+      "published_at": {
         "type": "date",
-        "format": "epoch_millis"
+        "format": "epoch_millis||strict_date_optional_time"
+      },
+      "sentiment_label": {
+        "type": "keyword"
+      },
+      "country_code": {
+        "type": "keyword"
+      },
+      "source_ts_ms": {
+        "type": "long"
       },
       "created_at": {
         "type": "date",
-        "format": "epoch_millis"
+        "format": "epoch_millis||strict_date_optional_time"
       },
       "updated_at": {
         "type": "date",
-        "format": "epoch_millis"
-      },
-      "parent_comment_id": {
-        "type": "keyword"
+        "format": "epoch_millis||strict_date_optional_time"
       }
     }
   }
