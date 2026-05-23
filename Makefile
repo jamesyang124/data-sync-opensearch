@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics start-cdc stop-cdc restart-cdc status-cdc register-connector start-producer stop-producer test-producer build-producer
+.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics scale-cdc-topics start-cdc stop-cdc restart-cdc status-cdc register-connector start-producer stop-producer test-producer build-producer start-ops-console stop-ops-console verify-read-consistency
 
 # Default targets
 up:
@@ -142,6 +142,9 @@ status-cdc:
 register-connector:
 	@bash debezium/scripts/register-connector.sh
 
+scale-cdc-topics:
+	@bash scripts/scale-cdc-topics.sh
+
 # Kafka validation targets (Feature 003)
 test-kafka-performance:
 	@echo "Running Kafka performance benchmarks..."
@@ -185,3 +188,16 @@ build-producer:
 test-producer:
 	@echo "Running Producer Tests..."
 	@cd producer && make test
+
+# Ops console targets
+start-ops-console:
+	@echo "Starting Ops Console..."
+	docker compose --profile ops up -d ops-console
+	@echo "Ops Console: http://localhost:$${OPS_CONSOLE_PORT:-8090}"
+
+stop-ops-console:
+	@echo "Stopping Ops Console..."
+	docker compose --profile ops stop ops-console
+
+verify-read-consistency:
+	@bash scripts/verify-read-consistency.sh

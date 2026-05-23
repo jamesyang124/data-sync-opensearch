@@ -212,6 +212,17 @@ make load-demo-data
 make run-demo-queries
 ```
 
+## Ops Console
+
+The local ops console provides a browser entry point for pipeline observation and benchmark control.
+
+```bash
+make start-ops-console
+open http://localhost:8090
+```
+
+It links to Kafbat UI, Kafka UI, and OpenSearch Dashboards, probes producer/consumer/OpenSearch health, scales consumer replicas, and launches benchmark runs with adjustable scenario, RPS, and duration. The console uses Docker Compose from inside the container, so set `DOCKER_SOCKET` in `.env` if your Docker socket is not `/var/run/docker.sock` (for example Colima).
+
 ## Development Guidelines
 
 ### Branch Strategy
@@ -297,6 +308,7 @@ make stop-cdc
 
 **Web Interfaces**:
 - **Kafka UI**: http://localhost:8081 - Monitor topics, consumers, and CDC events
+- **Kafbat UI**: http://localhost:8084 - Kafka metadata, consumer groups, lag, and Kafka Connect visibility
 - **Kafka Connect API**: http://localhost:8083 - REST API for connector management
 
 **Integration Tests**:

@@ -36,11 +36,24 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_LOG_DIRS: '/var/lib/kafka/data'
       KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_NUM_PARTITIONS: 6
       CLUSTER_ID: 'l9mJqFQwS4eYc1pKZJ1tng'
     ports:
       - "9092:9092"
     volumes:
       - kafka_data:/var/lib/kafka/data
+
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+    ports:
+      - "8084:8080"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -55,8 +68,10 @@ services:
   connect:
     image: debezium/connect:2.5
     depends_on:
-      - kafka
-      - postgres
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     environment:
       BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: 1
@@ -97,22 +112,53 @@ services:
     ports:
       - "${DASHBOARDS_PORT:-5601}:5601"
 
+  ops-console:
+    profiles: ["ops"]
+    build:
+      context: ./ops-console
+      dockerfile: Dockerfile
+    working_dir: ${PWD:-/workspace}
+    volumes:
+      - .:${PWD:-/workspace}
+      - ${DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    environment:
+      OPS_CONSOLE_WORKDIR: ${PWD:-/workspace}
+      OPS_CONSOLE_COMPOSE_PROJECT_NAME: data-sync-opensearch
+      OPS_CONSOLE_PRODUCER_URL: http://producer:8080
+      OPS_CONSOLE_CONSUMER_URL: http://consumer:8080
+      OPS_CONSOLE_OPENSEARCH_URL: http://opensearch:9200
+      OPS_CONSOLE_KAFBAT_URL: http://localhost:8084
+      OPS_CONSOLE_KAFKA_UI_URL: http://localhost:8081
+      OPS_CONSOLE_OPENSEARCH_DASHBOARD_URL: http://localhost:${DASHBOARDS_PORT:-5601}
+      OPS_CONSOLE_BENCHMARK_REPORT_PATH: ${PWD:-/workspace}/benchmark/reports
+      OPS_CONSOLE_CONSUMER_GROUP: cdc-consumer-group
+    ports:
+      - "${OPS_CONSOLE_PORT:-8090}:8090"
+
   consumer:
     profiles: ["app"]
     build:
       context: ./consumer
       dockerfile: Dockerfile
     depends_on:
-      - kafka
-      - opensearch
-      - postgres
+      kafka:
+        condition: service_started
+      opensearch:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       KAFKA_BROKERS: kafka:9092
       CONSUMER_GROUP: cdc-consumer-group
       OPENSEARCH_URL: http://opensearch:9200
       HEALTH_PORT: "8080"
-    ports:
-      - "8080:8080"
+      WORKER_COUNT: ${CONSUMER_WORKER_COUNT:-20}
+      BATCH_SIZE: ${CONSUMER_BATCH_SIZE:-100}
+      QUEUE_SIZE: ${CONSUMER_QUEUE_SIZE:-2000}
+      PAUSE_THRESHOLD: ${CONSUMER_PAUSE_THRESHOLD:-0.8}
+      RESUME_THRESHOLD: ${CONSUMER_RESUME_THRESHOLD:-0.4}
+    expose:
+      - "8080"
     restart: unless-stopped
 
   producer:
@@ -120,7 +166,8 @@ services:
       context: ./producer
       dockerfile: Dockerfile
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       PRODUCER_PORT: 8080
       PRODUCER_METRICS_PORT: 9090
@@ -131,7 +178,8 @@ services:
       PRODUCER_DB_NAME: ${POSTGRES_DB:-app}
     ports:
       - "8082:8080" # Exposed on different port than consumer to avoid conflict
-      - "9092:9090"
+      - "9091:9090"
+    restart: unless-stopped
 
   benchmark:
     profiles: ["benchmark"]
@@ -150,6 +198,7 @@ services:
       BENCHMARK_MAX_VUS: ${BENCHMARK_MAX_VUS:-300}
       BENCHMARK_SETUP_USERS: ${BENCHMARK_SETUP_USERS:-200}
       BENCHMARK_SETUP_VIDEOS: ${BENCHMARK_SETUP_VIDEOS:-100}
+      BENCHMARK_SETUP_COMMENTS: ${BENCHMARK_SETUP_COMMENTS:-100}
     # Shell form so BENCHMARK_SCENARIO is resolved at runtime for the output filename
     entrypoint: ["/bin/sh", "-c", "k6 run /scripts/main.js --out json=/reports/$${BENCHMARK_SCENARIO:-sustained}-raw.ndjson"]
 
