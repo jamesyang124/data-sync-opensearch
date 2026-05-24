@@ -1,6 +1,63 @@
 COMPOSE ?= docker compose
 
-.PHONY: up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics scale-cdc-topics start-cdc stop-cdc restart-cdc status-cdc register-connector start-producer stop-producer test-producer build-producer start-ops-console stop-ops-console verify-read-consistency
+.PHONY: provision up down restart logs ps clean start stop health reset inspect-schema inspect-data load-data start-opensearch stop-opensearch restart-opensearch status-opensearch create-indices load-demo-data run-demo-queries check-index-stats check-query-performance start-kafka stop-kafka status-kafka create-topics scale-cdc-topics start-cdc stop-cdc restart-cdc status-cdc register-connector start-producer stop-producer test-producer build-producer start-ops-console stop-ops-console verify-read-consistency benchmark-sustained benchmark-ramp benchmark-stress
+
+# Provision the complete stack end-to-end: infra + data + CDC + benchmark image + ops console
+provision:
+	@echo "=== Provisioning full stack ==="
+	@echo ""
+	@echo "[1/7] Building benchmark image..."
+	@docker build -q -t data-sync/benchmark:latest benchmark
+	@echo "✓ Benchmark image ready"
+	@echo ""
+	@echo "[2/7] Starting all services (infra + app + ops)..."
+	@CURRENT_CONSUMERS=$$(docker compose ps -q consumer 2>/dev/null | wc -l | tr -d ' '); \
+	 CURRENT_CONSUMERS=$${CURRENT_CONSUMERS:-0}; \
+	 SCALE=$$([ "$$CURRENT_CONSUMERS" -gt 0 ] && echo "$$CURRENT_CONSUMERS" || echo "1"); \
+	 docker compose --profile app --profile ops up -d --scale consumer=$$SCALE
+	@echo ""
+	@echo "[3/7] Waiting for PostgreSQL..."
+	@PG_WAIT=0; \
+	 until docker compose exec -T postgres pg_isready -U $${POSTGRES_USER:-app} >/dev/null 2>&1; do \
+	   PG_WAIT=$$((PG_WAIT + 1)); \
+	   if [ $$PG_WAIT -ge 30 ]; then \
+	     echo "✗ PostgreSQL not ready after 60s"; exit 1; \
+	   fi; \
+	   sleep 2; \
+	 done
+	@echo "✓ PostgreSQL ready"
+	@echo ""
+	@echo "[4/7] Waiting for OpenSearch (green)..."
+	@MAX_WAIT=30 bash opensearch/scripts/wait-for-health.sh
+	@echo ""
+	@echo "[5/7] Loading PostgreSQL seed data..."
+	@bash postgres/scripts/load-csv-data.sh
+	@echo ""
+	@echo "[6/7] Creating OpenSearch indices..."
+	@bash opensearch/scripts/create-indices.sh
+	@echo ""
+	@echo "[7/7] Registering Debezium CDC connector..."
+	@bash debezium/scripts/register-connector.sh
+	@echo ""
+	@echo "==========================================="
+	@echo "  Stack is ready"
+	@echo "==========================================="
+	@echo ""
+	@echo "  PostgreSQL:            localhost:$${POSTGRES_PORT:-5432}"
+	@echo "  Kafka:                 localhost:9092"
+	@echo "  Kafka UI:              http://localhost:8081"
+	@echo "  Kafbat UI:             http://localhost:8084"
+	@echo "  Kafka Connect:         http://localhost:8083"
+	@echo "  OpenSearch:            http://localhost:$${OPENSEARCH_PORT:-9200}"
+	@echo "  OpenSearch Dashboards: http://localhost:$${DASHBOARDS_PORT:-5601}"
+	@echo "  Producer API:          http://localhost:8082"
+	@echo "  Ops Console:           http://localhost:$${OPS_CONSOLE_PORT:-8090}"
+	@echo ""
+	@echo "  Run a benchmark:"
+	@echo "    make benchmark-sustained"
+	@echo "    make benchmark-ramp"
+	@echo "    make benchmark-stress"
+	@echo ""
 
 # Default targets
 up:
@@ -144,6 +201,32 @@ register-connector:
 
 scale-cdc-topics:
 	@bash scripts/scale-cdc-topics.sh
+
+# Kafka-specific targets
+start-kafka:
+	@echo "Starting Kafka and UI services..."
+	docker compose up -d kafka kafka-ui kafbat-ui
+	@echo "✓ Kafka started"
+	@echo "  Kafka UI:  http://localhost:8081"
+	@echo "  Kafbat UI: http://localhost:8084"
+
+stop-kafka:
+	@echo "Stopping Kafka and UI services..."
+	docker compose stop kafka kafka-ui kafbat-ui
+
+status-kafka:
+	@echo "Kafka topics:"
+	@docker compose exec -T kafka kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null || echo "✗ Kafka not running"
+
+# Benchmark shortcut targets (image must be built; run 'make provision' first)
+benchmark-sustained:
+	@docker compose --profile benchmark run --rm -e BENCHMARK_SCENARIO=sustained benchmark
+
+benchmark-ramp:
+	@docker compose --profile benchmark run --rm -e BENCHMARK_SCENARIO=ramp-up benchmark
+
+benchmark-stress:
+	@docker compose --profile benchmark run --rm -e BENCHMARK_SCENARIO=stress benchmark
 
 # Kafka validation targets (Feature 003)
 test-kafka-performance:
